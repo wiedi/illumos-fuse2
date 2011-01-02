@@ -58,6 +58,9 @@ GENSTUBS_OBJS += $(COMMON_GENSTUBS_OBJS) $($(MACH)_GENSTUBS_OBJS)
 
 FOO_OBJS += foo.o
 
+FUSEFS_OBJS +=	fusefs_vfsops.o	fusefs_vnops.o	fusefs_client.o	\
+		fusefs_node.o	fusefs_subr.o	fusefs_calls.o	\
+		fusefs_rwlock.o
 
 
 #

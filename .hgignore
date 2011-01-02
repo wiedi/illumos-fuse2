@@ -1,5 +1,8 @@
 #
 syntax: glob
-proto/*
 */.make.state
 *~
+*.o
+proto
+usr/src/uts/intel/fusefs/*/fusefs
+usr/src/uts/intel/fusefs/*/ioc_check.h
