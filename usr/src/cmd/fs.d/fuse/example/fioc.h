@@ -10,6 +10,7 @@
 #include <sys/types.h>
 #include <sys/uio.h>
 #include <sys/ioctl.h>
+#include <sys/ioccom.h>
 
 enum {
 	FIOC_GET_SIZE	= _IOR('E', 0, size_t),

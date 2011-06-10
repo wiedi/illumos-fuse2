@@ -38,7 +38,7 @@
 
 #include <sys/avl.h>
 #include <sys/list.h>
-#include "fuse_ktypes.h"
+#include <sys/fs/fuse_ktypes.h>
 
 #ifdef __cplusplus
 extern "C" {

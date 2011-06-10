@@ -29,11 +29,12 @@
 #include <sys/cmn_err.h>
 #include <sys/sdt.h>
 
+#include <sys/fs/fuse_door.h>
+
 #include "fusefs.h"
 #include "fusefs_calls.h"
 #include "fusefs_node.h"
 #include "fusefs_subr.h"
-#include "fuse_door.h"
 
 uint_t fusefs_genid = 0;
 

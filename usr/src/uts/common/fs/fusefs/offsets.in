@@ -41,7 +41,7 @@
 #include <sys/dirent.h>
 #include <sys/stat.h>
 #include <sys/statvfs.h>
-#include <fuse_door.h>
+#include <sys/fs/fuse_door.h>
 
 fuse_statvfs
 	f_blocks

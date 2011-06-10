@@ -24,7 +24,7 @@
 #include <sys/stat.h>
 #include <sys/statvfs.h>
 #include <sys/dirent.h>
-#include "fuse_ktypes.h"
+#include <sys/fs/fuse_ktypes.h>
 
 int fusefs_call_init(fusefs_ssn_t *, int);
 

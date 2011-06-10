@@ -207,13 +207,21 @@ static struct fuse_chan *fuse_mount_common(const char *mountpoint,
 			close(fd);
 	} while (fd >= 0 && fd <= 2);
 
-	fd = fuse_mount_compat25(mountpoint, args);
+#if defined(__SOLARIS__)
+	/* See mount_solaris.c */
+	fd = fuse_sol_mount1(mountpoint, args);
 	if (fd == -1)
 		return NULL;
+	ch = fuse_sol_chan_new(fd);
 
+#else	/* __SOLARIS__ */
+	fd = fuse_kern_mount(mountpoint, args);
+	if (fd == -1)
+		return NULL;
 	ch = fuse_kern_chan_new(fd);
 	if (!ch)
 		fuse_kern_unmount(mountpoint, fd);
+#endif	/* __SOLARIS__ */
 
 	return ch;
 }
@@ -268,6 +276,12 @@ struct fuse *fuse_setup_common(int argc, char *argv[],
 	res = fuse_daemonize(foreground);
 	if (res == -1)
 		goto err_unmount;
+
+#ifdef	__SOLARIS__
+	res = fuse_sol_mount2(*mountpoint, fuse);
+	if (res == -1)
+		goto err_unmount;
+#endif	/* __SOLARIS__ */
 
 	res = fuse_set_signal_handlers(fuse_get_session(fuse));
 	if (res == -1)

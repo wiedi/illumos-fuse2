@@ -83,7 +83,7 @@ static int xmp_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 		struct stat st;
 		memset(&st, 0, sizeof(st));
 		st.st_ino = de->d_ino;
-		st.st_mode = de->d_type << 12;
+		/* st.st_mode = de->d_type << 12; XXX */
 		if (filler(buf, de->d_name, &st, 0))
 			break;
 	}

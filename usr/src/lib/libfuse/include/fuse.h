@@ -826,6 +826,17 @@ void fuse_register_module(struct fuse_module *mod);
  * For the parameters, see description of the fields in 'struct
  * fuse_module'
  */
+#if defined(__SUNPRO_C)
+/* Again, have to "eat" a semicolon that follows (sigh) */
+#define FUSE_REGISTER_MODULE(name_, factory_)		\
+_Pragma("init(_register_module)")			\
+static void _register_module(void)			\
+{							\
+	static struct fuse_module mod =			\
+		{ #name_, factory_, NULL, NULL, 0 };	\
+	fuse_register_module(&mod);			\
+} int FUSE_JUNK
+#else /* __SUNPRO_C */
 #define FUSE_REGISTER_MODULE(name_, factory_)				  \
 	static __attribute__((constructor)) void name_ ## _register(void) \
 	{								  \
@@ -833,6 +844,7 @@ void fuse_register_module(struct fuse_module *mod);
 			{ #name_, factory_, NULL, NULL, 0 };		  \
 		fuse_register_module(&mod);				  \
 	}
+#endif /* __SUNPRO_C */
 
 
 /* ----------------------------------------------------------- *

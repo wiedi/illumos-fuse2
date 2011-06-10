@@ -74,7 +74,7 @@ static int fsel_getattr(const char *path, struct stat *stbuf)
 static int fsel_readdir(const char *path, void *buf, fuse_fill_dir_t filler,
 			off_t offset, struct fuse_file_info *fi)
 {
-	char name[2] = { };
+	char name[2] = { 0 };
 	int i;
 
 	(void) offset;

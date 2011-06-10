@@ -17,7 +17,7 @@
 #define	_FS_FUSEFS_FUSE_DOOR_H_
 
 #include <sys/param.h>
-#include "fuse_ktypes.h"
+#include <sys/fs/fuse_ktypes.h>
 
 /*
  * Door calls implemented by fuse-dmn

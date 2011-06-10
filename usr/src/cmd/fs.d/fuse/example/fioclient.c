@@ -17,6 +17,8 @@
 #include <stdlib.h>
 #include <ctype.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
 #include "fioc.h"
 
 const char *usage =
@@ -63,7 +65,7 @@ static int do_rw(int fd, int is_read, size_t size, off_t offset,
 
 int main(int argc, char **argv)
 {
-	size_t param[2] = { };
+	size_t param[2] = { 0 };
 	size_t size, prev_size = 0, new_size = 0;
 	char cmd;
 	int fd, i, rc;

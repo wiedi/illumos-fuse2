@@ -25,7 +25,7 @@
 include ../Makefile.cmd
 
 SUBDIR1=
-SUBDIR2=
+SUBDIR2= fuse
 SUBDIRS= $(SUBDIR1) $(SUBDIR2)
 I18NDIRS= $(SUBDIR2)
 

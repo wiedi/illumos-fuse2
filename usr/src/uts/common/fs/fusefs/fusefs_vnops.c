@@ -2443,8 +2443,10 @@ fusefs_frlock(vnode_t *vp, int cmd, struct flock64 *bfp, int flag,
 
 	if (VTOFMI(vp)->fmi_flags & FMI_LLOCK)
 		return (fs_frlock(vp, cmd, bfp, flag, offset, flk_cbp, cr, ct));
-	else
+	else {
+		/* XXX: Call FUSE lock stuff? */
 		return (ENOSYS);
+	}
 }
 
 /*

@@ -3,6 +3,8 @@ syntax: glob
 */.make.state
 *~
 *.o
+*.orig
 proto
 usr/src/uts/intel/fusefs/*/fusefs
 usr/src/uts/intel/fusefs/*/ioc_check.h
+webrev*

@@ -10,10 +10,11 @@
 #include <pthread.h>
 
 /* Versioned symbols confuse the dynamic linker in uClibc */
-#ifndef __UCLIBC__
+#if !defined(__UCLIBC__) && !defined(__SOLARIS__)
 #define FUSE_SYMVER(x) __asm__(x)
 #else
-#define FUSE_SYMVER(x)
+/* Need to "eat" a semicolon that follows (sigh) */
+#define FUSE_SYMVER(x) int FUSE_JUNK
 #endif
 
 #ifndef USE_UCLIBC

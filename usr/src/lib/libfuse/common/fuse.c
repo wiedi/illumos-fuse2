@@ -16,7 +16,12 @@
 #include "fuse_misc.h"
 #include "fuse_common_compat.h"
 #include "fuse_compat.h"
+
+#ifdef	__SOLARIS__
+#include <sys/fs/fuse_ktypes.h>
+#else	/* __SOLARIS__ */
 #include "fuse_kernel.h"
+#endif	/* __SOLARIS__ */
 
 #include <stdio.h>
 #include <string.h>
@@ -39,39 +44,8 @@
 #define FUSE_UNKNOWN_INO 0xffffffff
 #define OFFSET_MAX 0x7fffffffffffffffLL
 
-struct fuse_config {
-	unsigned int uid;
-	unsigned int gid;
-	unsigned int  umask;
-	double entry_timeout;
-	double negative_timeout;
-	double attr_timeout;
-	double ac_attr_timeout;
-	int ac_attr_timeout_set;
-	int noforget;
-	int debug;
-	int hard_remove;
-	int use_ino;
-	int readdir_ino;
-	int set_mode;
-	int set_uid;
-	int set_gid;
-	int direct_io;
-	int kernel_cache;
-	int auto_cache;
-	int intr;
-	int intr_signal;
-	int help;
-	char *modules;
-};
-
-struct fuse_fs {
-	struct fuse_operations op;
-	struct fuse_module *m;
-	void *user_data;
-	int compat;
-	int debug;
-};
+/* struct fuse_config > fuse_i.h */
+/* struct fuse_fs >     fuse_i.h */
 
 struct fusemod_so {
 	void *handle;
@@ -83,23 +57,7 @@ struct lock_queue_element {
        pthread_cond_t cond;
 };
 
-struct fuse {
-	struct fuse_session *se;
-	struct node **name_table;
-	size_t name_table_size;
-	struct node **id_table;
-	size_t id_table_size;
-	fuse_ino_t ctr;
-	unsigned int generation;
-	unsigned int hidectr;
-	pthread_mutex_t lock;
-	struct fuse_config conf;
-	int intr_installed;
-	struct fuse_fs *fs;
-	int nullpath_ok;
-	int curr_ticket;
-	struct lock_queue_element *lockq;
-};
+/* struct fuse > fuse_i.h */
 
 struct lock {
 	int type;
@@ -130,20 +88,7 @@ struct node {
 	int ticket;
 };
 
-struct fuse_dh {
-	pthread_mutex_t lock;
-	struct fuse *fuse;
-	fuse_req_t req;
-	char *contents;
-	int allocated;
-	unsigned len;
-	unsigned size;
-	unsigned needlen;
-	int filled;
-	uint64_t fh;
-	int error;
-	fuse_ino_t nodeid;
-};
+/* struct fuse_dh > fuse_i.h */
 
 /* old dir handle */
 struct fuse_dirhandle {
@@ -151,10 +96,7 @@ struct fuse_dirhandle {
 	void *buf;
 };
 
-struct fuse_context_i {
-	struct fuse_context ctx;
-	fuse_req_t req;
-};
+/* struct fuse_context_i > fuse_i.h */
 
 static pthread_key_t fuse_context_key;
 static pthread_mutex_t fuse_context_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -954,7 +896,7 @@ static inline void fuse_prepare_interrupt(struct fuse *f, fuse_req_t req,
 		fuse_do_prepare_interrupt(req, d);
 }
 
-#ifndef __FreeBSD__
+#if !defined(__FreeBSD__) && !defined(__SOLARIS__)
 
 static int fuse_compat_open(struct fuse_fs *fs, const char *path,
 			    struct fuse_file_info *fi)
@@ -1049,9 +991,9 @@ static int fuse_compat_statfs(struct fuse_fs *fs, const char *path,
 	return err;
 }
 
-#else /* __FreeBSD__ */
+#else /* __FreeBSD__ || __SOLARIS__ */
 
-static inline int fuse_compat_open(struct fuse_fs *fs, char *path,
+static inline int fuse_compat_open(struct fuse_fs *fs, const char *path,
 				   struct fuse_file_info *fi)
 {
 	return fs->op.open(path, fi);
@@ -1075,7 +1017,7 @@ static inline int fuse_compat_statfs(struct fuse_fs *fs, const char *path,
 	return fs->op.statfs(fs->compat == 25 ? "/" : path, buf);
 }
 
-#endif /* __FreeBSD__ */
+#endif /* __FreeBSD__ || __SOLARIS__ */
 
 int fuse_fs_getattr(struct fuse_fs *fs, const char *path, struct stat *buf)
 {
@@ -1849,7 +1791,7 @@ static int lookup_path(struct fuse *f, fuse_ino_t nodeid,
 	return res;
 }
 
-static struct fuse_context_i *fuse_get_context_internal(void)
+struct fuse_context_i *fuse_get_context_internal(void)
 {
 	struct fuse_context_i *c;
 
@@ -2734,6 +2676,14 @@ static int fill_dir(void *dh_, const char *name, const struct stat *statp,
 	return 0;
 }
 
+#ifdef	__SOLARIS__
+int fuse_fill_dir(void *dh_, const char *name, const struct stat *statp,
+		    off_t off)
+{
+	return (fill_dir(dh_, name, statp, off));
+}
+#endif	/* __SOLARIS__ */
+
 static int readdir_fill(struct fuse *f, fuse_req_t req, fuse_ino_t ino,
 			size_t size, off_t off, struct fuse_dh *dh,
 			struct fuse_file_info *fi)
@@ -3294,7 +3244,7 @@ static void fuse_lib_ioctl(fuse_req_t req, fuse_ino_t ino, int cmd, void *arg,
 	fuse_prepare_interrupt(f, req, &d);
 
 	err = fuse_fs_ioctl(f->fs, path, cmd, arg, fi, flags,
-			    out_buf ?: (void *)in_buf);
+			    out_buf ? out_buf : (void *)in_buf);
 
 	fuse_finish_interrupt(f, req, &d);
 	free_path(f, ino, path);
@@ -3669,7 +3619,9 @@ struct fuse *fuse_new_common(struct fuse_chan *ch, struct fuse_args *args,
 	struct fuse *f;
 	struct node *root;
 	struct fuse_fs *fs;
+#if !defined(__SOLARIS__)
 	struct fuse_lowlevel_ops llop = fuse_path_ops;
+#endif
 
 	if (fuse_create_context_key() == -1)
 		goto out;
@@ -3688,11 +3640,13 @@ struct fuse *fuse_new_common(struct fuse_chan *ch, struct fuse_args *args,
 	f->fs = fs;
 	f->nullpath_ok = fs->op.flag_nullpath_ok;
 
+#if !defined(__SOLARIS__)
 	/* Oh f**k, this is ugly! */
 	if (!fs->op.lock) {
 		llop.getlk = NULL;
 		llop.setlk = NULL;
 	}
+#endif
 
 	f->conf.entry_timeout = 1.0;
 	f->conf.attr_timeout = 1.0;
@@ -3734,7 +3688,12 @@ struct fuse *fuse_new_common(struct fuse_chan *ch, struct fuse_args *args,
 			goto out_free_fs;
 	}
 
+#if defined(__SOLARIS__)
+	/* Solaris does not use "lowlevel" */
+	f->se = fuse_solaris_new_common(args, f);
+#else
 	f->se = fuse_lowlevel_new_common(args, &llop, sizeof(llop), f);
+#endif
 	if (f->se == NULL) {
 		if (f->conf.help)
 			fuse_lib_help_modules();
@@ -3877,7 +3836,13 @@ static struct fuse *fuse_new_common_compat25(int fd, struct fuse_args *args,
 					     size_t op_size, int compat)
 {
 	struct fuse *f = NULL;
-	struct fuse_chan *ch = fuse_kern_chan_new(fd);
+	struct fuse_chan *ch;
+
+#if defined(__SOLARIS__)
+	ch = fuse_sol_chan_new(fd);
+#else	/* __SOLARIS__ */
+	ch = fuse_kern_chan_new(fd);
+#endif	/* __SOLARIS__ */
 
 	if (ch)
 		f = fuse_new_common(ch, args, op, op_size, NULL, compat);
