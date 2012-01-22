@@ -25,7 +25,7 @@
  *	Copyright (c) 1983,1984,1985,1986,1987,1988,1989  AT&T.
  *	All rights reserved.
  *
- * Copyright 2011 Nexenta Systems, Inc.  All rights reserved.
+ * Copyright 2012 Nexenta Systems, Inc.  All rights reserved.
  */
 
 /*
@@ -919,13 +919,14 @@ fusefssetattr(vnode_t *vp, struct vattr *vap, int flags, cred_t *cr)
 		    (np->n_rights & FWRITE) &&
 		    (np->n_ssgenid == ssp->ss_genid))
 			error = fusefs_call_ftruncate(ssp,
-			    np->n_fid, vap->va_size);
+			    np->n_fid, vap->va_size,
+			    np->n_rplen, np->n_rpath);
 		else
 			error = EBADF;
 		if (error == EBADF) {
-			error = fusefs_call_truncate(ssp,
-			    np->n_rplen, np->n_rpath,
-			    vap->va_size);
+			error = fusefs_call_ftruncate(ssp,
+			    0, vap->va_size,
+			    np->n_rplen, np->n_rpath);
 		}
 		if (error) {
 			FUSEFS_DEBUG("setsize error %d file %s\n",
@@ -1653,7 +1654,7 @@ fusefs_create(vnode_t *dvp, char *nm, struct vattr *va, enum vcexcl exclusive,
 	 */
 	error = fusefs_call_create(fmi->fmi_ssn,
 	    dnp->n_rplen, dnp->n_rpath,
-	    nmlen, name, &fid);
+	    nmlen, name, mode, &fid);
 	if (error)
 		goto out;
 

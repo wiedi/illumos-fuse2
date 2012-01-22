@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright 2011 Nexenta Systems, Inc.  All rights reserved.
+ * Copyright 2012 Nexenta Systems, Inc.  All rights reserved.
  */
 
 /*
@@ -39,8 +39,7 @@ main(int argc, char **argv)
 
 	err = cli_ssn_create(argv[1], &ssn);
 	if (err) {
-		fprintf(stderr, "%s: session_create, err=%d\n",
-			argv[0], err);
+		fprintf(stderr, "%s: ssn_create, err=%d\n", argv[0], err);
 		return (1);
 	}
 
@@ -57,7 +56,7 @@ cmd_loop(void)
 	char *p;
 
 	printf("Type commands: ls, cat, df\n");
-	while ((p = fgets(lbuf, sizeof(lbuf), stdin)) != NULL) {
+	while ((p = fgets(lbuf, sizeof (lbuf), stdin)) != NULL) {
 		switch (lbuf[0]) {
 		case 'c':
 			do_cat(lbuf);
@@ -93,14 +92,14 @@ do_df(char *p)
 		return;
 	}
 
-	printf("f_bsize  = %ld\n", (long) stvfs.f_bsize);
-	printf("f_frsize = %ld\n", (long) stvfs.f_frsize);
-	printf("f_blocks = %ld\n", (long) stvfs.f_blocks);
-	printf("f_bfree  = %ld\n", (long) stvfs.f_bfree);
-	printf("f_bavail = %ld\n", (long) stvfs.f_bavail);
-	printf("f_files  = %ld\n", (long) stvfs.f_files);
-	printf("f_ffree  = %ld\n", (long) stvfs.f_ffree);
-	printf("f_favail = %ld\n", (long) stvfs.f_favail);
+	printf("f_bsize  = %ld\n", (long)stvfs.f_bsize);
+	printf("f_frsize = %ld\n", (long)stvfs.f_frsize);
+	printf("f_blocks = %ld\n", (long)stvfs.f_blocks);
+	printf("f_bfree  = %ld\n", (long)stvfs.f_bfree);
+	printf("f_bavail = %ld\n", (long)stvfs.f_bavail);
+	printf("f_files  = %ld\n", (long)stvfs.f_files);
+	printf("f_ffree  = %ld\n", (long)stvfs.f_ffree);
+	printf("f_favail = %ld\n", (long)stvfs.f_favail);
 }
 
 void
@@ -123,22 +122,22 @@ do_ls(char *p)
 	eof = off = 0;
 	for (;;) {
 		rc = cli_call_readdir(ssn, fid, off,
-			&ret.st, &ret.de, &eof);
+		    &ret.st, &ret.de, &eof);
 		if (rc) {
 			printf("readdir, rc=%d\n", rc);
 			break;
 		}
 		printf("\noff=%d:\n", off);
 
-		printf("st_ino  = %d\n",  (int) ret.st.st_ino);
-		printf("st_mode = 0%o\n", (int) ret.st.st_mode);
-		printf("st_uid  = %d\n",  (int) ret.st.st_uid);
-		printf("st_gid  = %d\n",  (int) ret.st.st_gid);
-		printf("st_size = %d\n",  (int) ret.st.st_size);
+		printf("st_ino  = %d\n",  (int)ret.st.st_ino);
+		printf("st_mode = 0%o\n", (int)ret.st.st_mode);
+		printf("st_uid  = %d\n",  (int)ret.st.st_uid);
+		printf("st_gid  = %d\n",  (int)ret.st.st_gid);
+		printf("st_size = %d\n",  (int)ret.st.st_size);
 
-		printf("d_ino  = %d\n",   (int) ret.de.d_ino);
-		printf("d_off  = %d\n",   (int) ret.de.d_off);
-		printf("d_nmlen = %d\n",  (int) ret.de.d_nmlen);
+		printf("d_ino  = %d\n",   (int)ret.de.d_ino);
+		printf("d_off  = %d\n",   (int)ret.de.d_off);
+		printf("d_nmlen = %d\n",  (int)ret.de.d_nmlen);
 		printf("d_name = \"%s\"\n", ret.de.d_name);
 
 		if (eof)

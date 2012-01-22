@@ -23,7 +23,7 @@
 \ Copyright 2009 Sun Microsystems, Inc.  All rights reserved.
 \ Use is subject to license terms.
 \
-\ Copyright 2011 Nexenta Systems, Inc.  All rights reserved.
+\ Copyright 2012 Nexenta Systems, Inc.  All rights reserved.
 \
 
 \
@@ -42,6 +42,8 @@
 #include <sys/stat.h>
 #include <sys/statvfs.h>
 #include <sys/fs/fuse_door.h>
+
+\ from fuse_ktypes.h
 
 fuse_statvfs
 	f_blocks
@@ -77,6 +79,18 @@ fuse_dirent
 	d_nmlen
 	d_name
 
+\ from fuse_door.h
+
+fuse_fid_arg
+	arg_opcode	FID_ARG_OPCODE
+	arg_flags	FID_ARG_FLAGS
+	arg_fid		FID_ARG_FID
+
+fuse_fid_ret
+	ret_err		FID_RET_ERR
+	ret_flags	FID_RET_FLAGS
+	ret_fid		FID_RET_FID
+
 fuse_statvfs_ret
 	ret_err		STATVFS_RET_ERR
 	ret_flags	STATVFS_RET_FLAGS
@@ -87,11 +101,17 @@ fuse_getattr_ret
 	ret_flags	GETATTR_RET_FLAGS
 	ret_st		GETATTR_RET_ST
 
-fuse_readdir_arg
-	arg_fid		READDIR_ARG_FID
-	arg_offset	READDIR_ARG_OFFSET
-	arg_pathlen	READDIR_ARG_PATHLEN
-	arg_path	READDIR_ARG_PATH
+fuse_path_arg
+	arg_val		PATH_ARG_VAL
+	arg_pathlen	PATH_ARG_PATHLEN
+	arg_path	PATH_ARG_PATH
+
+fuse_path2_arg
+	arg_flags	PATH2_ARG_FLAGS
+	arg_p1len	PATH2_ARG_P1LEN
+	arg_p2len	PATH2_ARG_P2LEN
+	arg_path1	PATH2_ARG_PATH1
+	arg_path2	PATH2_ARG_PATH2
 
 fuse_readdir_ret
 	ret_err		READDIR_RET_ERR
@@ -112,3 +132,22 @@ fuse_write_arg
 	arg_length	WRITE_ARG_LENGTH
 	arg_pathlen	WRITE_ARG_PATHLEN
 	arg_path	WRITE_ARG_PATH
+
+fuse_ftrunc_arg
+	arg_flags	FTRUNC_ARG_FLAGS
+	arg_fid		FTRUNC_ARG_FID
+	arg_offset	FTRUNC_ARG_OFFSET
+	arg__pad	FTRUNC_ARG__PAD
+	arg_pathlen	FTRUNC_ARG_PATHLEN
+	arg_path	FTRUNC_ARG_PATH
+
+fuse_utimes_arg
+	arg_flags	UTIMES_ARG_FLAGS
+	arg_atime	UTIMES_ARG_ATIME
+	arg_mtime	UTIMES_ARG_MTIME
+	arg_atime_ns	UTIMES_ARG_ATIME_NS
+	arg_mtime_ns	UTIMES_ARG_MTIME_NS
+	arg__pad	UTIMES_ARG__PAD
+	arg_pathlen	UTIMES_ARG_PATHLEN
+	arg_path	UTIMES_ARG_PATH
+

@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright 2011 Nexenta Systems, Inc.  All rights reserved.
+ * Copyright 2012 Nexenta Systems, Inc.  All rights reserved.
  */
 
 /*
@@ -72,7 +72,7 @@ main(int argc, char **argv)
 	 * only the owner of this process has access.
 	 */
 	snprintf(door_path, sizeof (door_path),
-		 "/tmp/fuse-dmn-%d", pid);
+	    "/tmp/fuse-dmn-%d", pid);
 	(void) unlink(door_path);
 	tmp_fd = open(door_path, O_RDWR|O_CREAT|O_EXCL, 0600);
 	if (tmp_fd < 0) {
@@ -145,4 +145,3 @@ errout:
 
 	return (rc);
 }
-

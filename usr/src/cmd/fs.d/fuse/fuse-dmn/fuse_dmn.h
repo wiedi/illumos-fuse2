@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright 2011 Nexenta Systems, Inc.  All rights reserved.
+ * Copyright 2012 Nexenta Systems, Inc.  All rights reserved.
  */
 
 #include <sys/note.h>
@@ -26,4 +26,4 @@ extern int fuse_debug;
 
 void
 dmn_dispatch(void *cookie, char *cargp, size_t argsz,
-	     door_desc_t *dp, uint_t n_desc);
+		door_desc_t *dp, uint_t n_desc);

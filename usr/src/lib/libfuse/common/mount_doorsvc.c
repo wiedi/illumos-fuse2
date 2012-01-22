@@ -10,6 +10,7 @@
 #include "fuse_misc.h"
 #include "fuse_opt.h"
 
+#include <sys/note.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <sys/user.h>
@@ -42,6 +43,7 @@ static int did_mount;
 /*
  * Solaris door setup.
  */
+/* ARGSUSED */
 int
 fuse_sol_door_create(struct fuse *f)
 {
@@ -244,6 +246,7 @@ void fuse_unmount_compat22(const char *mountpoint)
 
 void fuse_kern_unmount(const char *mountpoint, int fd)
 {
+	_NOTE(ARGUNUSED(fd));
 	const char *argv[4];
 	pid_t pid;
 
@@ -278,7 +281,7 @@ void fuse_kern_unmount(const char *mountpoint, int fd)
 static int fuse_mount_core(const char *mountpoint, const char *opts)
 {
 	pid_t pid, cpid;
-	int rc, status;
+	int status;
 	char *no_mount;
 
 	no_mount = getenv("FUSE_NO_MOUNT");
@@ -345,6 +348,7 @@ static int fuse_mount_core(const char *mountpoint, const char *opts)
  */
 int fuse_sol_mount1(const char *mountpoint, struct fuse_args *args)
 {
+	_NOTE(ARGUNUSED(mountpoint));
 	int res = -1;
 
 	memset(&sol_mo, 0, sizeof(sol_mo));
@@ -394,12 +398,14 @@ int fuse_sol_mount2(const char *mountpoint, struct fuse *f)
 }
 
 /* XXX: don't support this. */
+/* ARGSUSED */
 int fuse_kern_mount(const char *mountpoint, struct fuse_args *args)
 {
 	return (-1);
 }
 
 /* XXX: or this. */
+/* ARGSUSED */
 int fuse_mount_compat22(const char *mountpoint, const char *opts)
 {
 	return (-1);

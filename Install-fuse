@@ -77,13 +77,12 @@ do
         mv $DEST/$f $DEST/$f.orig || :
       fi
     fi
+    echo "Update $f"
     cp $PROTO/$f $DEST/$f
   }
 done <<EOF
 usr/kernel/fs/${ARCH64}/fusefs
 usr/kernel/fs/fusefs
-usr/kernel/kmdb/${ARCH64}/fusefs
-usr/kernel/kmdb/fusefs
 usr/lib/fs/fusefs/mount
 usr/lib/fs/fusefs/umount
 usr/lib/fuse/fioc

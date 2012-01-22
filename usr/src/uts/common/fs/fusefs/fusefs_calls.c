@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright 2011 Nexenta Systems, Inc.  All rights reserved.
+ * Copyright 2012 Nexenta Systems, Inc.  All rights reserved.
  */
 
 /*
@@ -75,14 +75,12 @@ fusefs_ssn_hold(fusefs_ssn_t *ssn)
 }
 #endif
 
-/*ARGSUSED*/
 void
 fusefs_ssn_kill(fusefs_ssn_t *ssn)
 {
 	door_arg_t da;
 	struct fuse_generic_arg arg;
 	struct fuse_generic_ret ret;
-	int rc;
 
 	memset(&arg, 0, sizeof (arg));
 	arg.arg_opcode = FUSE_OP_DESTROY;
@@ -162,7 +160,6 @@ fusefs_call_statvfs(fusefs_ssn_t *ssn, statvfs64_t *stv)
 	rc = door_ki_upcall(ssn->ss_door_handle, &da);
 	if (rc != 0)
 		return (rc);
-
 	if (ret.ret_err != 0)
 		return (ret.ret_err);
 
@@ -182,7 +179,6 @@ fusefs_call_statvfs(fusefs_ssn_t *ssn, statvfs64_t *stv)
 	return (0);
 }
 
-/*ARGSUSED*/
 int
 fusefs_call_fgetattr(fusefs_ssn_t *ssn,
 	uint64_t fid, fusefattr_t *fap)
@@ -206,7 +202,6 @@ fusefs_call_fgetattr(fusefs_ssn_t *ssn,
 	rc = door_ki_upcall(ssn->ss_door_handle, &da);
 	if (rc != 0)
 		return (rc);
-
 	if (ret.ret_err != 0)
 		return (ret.ret_err);
 
@@ -300,7 +295,6 @@ fusefs_call_getattr2(fusefs_ssn_t *ssn,
 	kmem_free(argp, sizeof (*argp));
 	if (rc != 0)
 		return (rc);
-
 	if (ret.ret_err != 0)
 		return (ret.ret_err);
 
@@ -308,7 +302,6 @@ fusefs_call_getattr2(fusefs_ssn_t *ssn,
 	return (0);
 }
 
-/*ARGSUSED*/
 int
 fusefs_call_opendir(fusefs_ssn_t *ssn,
 	int rplen, const char *rpath, uint64_t *ret_fid)
@@ -381,7 +374,8 @@ fusefs_call_readdir(fusefs_ssn_t *ssn, uint64_t fid, int offset,
 	door_arg_t da;
 	struct fuse_read_arg arg;
 	struct fuse_readdir_ret *retp;
-	int nmlen, rc;
+	uint32_t nmlen;
+	int rc;
 
 	memset(&arg, 0, sizeof (arg));
 	arg.arg_opcode = FUSE_OP_READDIR;
@@ -418,7 +412,7 @@ fusefs_call_readdir(fusefs_ssn_t *ssn, uint64_t fid, int offset,
 	/* Convert (*de = retp->ret_de) */
 	de->d_ino = retp->ret_de.d_ino;
 	de->d_off = retp->ret_de.d_off;
-	de->d_reclen = nmlen;
+	de->d_reclen = (uint16_t)nmlen;
 
 	/*
 	 * Copy the whole d_name field which actually
@@ -434,7 +428,6 @@ out:
 	return (rc);
 }
 
-/*ARGSUSED*/
 int
 fusefs_call_open(fusefs_ssn_t *ssn,
 	int rplen, const char *rpath, int oflags, uint64_t *ret_fid)
@@ -450,7 +443,7 @@ fusefs_call_open(fusefs_ssn_t *ssn,
 	argp = kmem_zalloc(sizeof (*argp), KM_SLEEP);
 
 	argp->arg_opcode = FUSE_OP_OPEN;
-	argp->arg_flags = oflags;
+	argp->arg_val[0] = oflags;
 	argp->arg_pathlen = rplen;
 	memcpy(argp->arg_path, rpath, rplen);
 	memset(&ret, 0, sizeof (ret));
@@ -553,7 +546,6 @@ out:
 	return (rc);
 }
 
-/*ARGSUSED*/
 int
 fusefs_call_write(fusefs_ssn_t *ssn,
 	uint64_t fid, uint32_t *rlen, uio_t *uiop,
@@ -636,89 +628,386 @@ fusefs_call_flush(fusefs_ssn_t *ssn, uint64_t fid)
 	return (0);
 }
 
-/* XXX: Modify operations - not yet. */
-
-/*ARGSUSED*/
 int
 fusefs_call_create(fusefs_ssn_t *ssn,
 	int dnlen, const char *dname,
 	int cnlen, const char *cname,
-	uint64_t *ret_fid)
+	int mode, uint64_t *ret_fid)
 {
-	return (EACCES);
+	door_arg_t da;
+	struct fuse_path_arg *argp;
+	struct fuse_fid_ret ret;
+	char *p;
+	int plen, rc;
+
+	/*
+	 * Add one '/' and a null, except when we're
+	 * starting at the root dir, then just a null.
+	 */
+	plen = dnlen + cnlen + 2;
+	if (dnlen == 1)
+		--plen;
+	if (plen >= MAXPATHLEN)
+		return (ENAMETOOLONG);
+
+	argp = kmem_zalloc(sizeof (*argp), KM_SLEEP);
+
+	argp->arg_opcode = FUSE_OP_CREATE;
+	argp->arg_pathlen = plen;
+	argp->arg_val[0] = mode;
+
+	/* Fill in path from two parts. */
+	p = argp->arg_path;
+	memcpy(p, dname, dnlen);
+	p += dnlen;
+	if (dnlen > 1)
+		*p++ = '/';
+	memcpy(p, cname, cnlen);
+
+	memset(&ret, 0, sizeof (ret));
+	memset(&da, 0, sizeof (da));
+	da.data_ptr = (void *)argp;
+	da.data_size = sizeof (*argp);
+	da.rbuf = (void *) &ret;
+	da.rsize = sizeof (ret);
+
+	rc = door_ki_upcall(ssn->ss_door_handle, &da);
+
+	kmem_free(argp, sizeof (*argp));
+	if (rc != 0)
+		return (rc);
+	if (ret.ret_err != 0)
+		return (ret.ret_err);
+
+	*ret_fid = ret.ret_fid;
+	return (0);
 }
 
-/*ARGSUSED*/
 int
-fusefs_call_ftruncate(fusefs_ssn_t *ssn, uint64_t fid, u_offset_t off)
+fusefs_call_ftruncate(fusefs_ssn_t *ssn, uint64_t fid, u_offset_t off,
+	int rplen, const char *rpath)
 {
-	return (EACCES);
+	door_arg_t da;
+	struct fuse_ftrunc_arg *argp;
+	struct fuse_generic_ret ret;
+	int rc;
+
+	argp = kmem_zalloc(sizeof (*argp), KM_SLEEP);
+
+	argp->arg_opcode = FUSE_OP_FTRUNC;
+	argp->arg_fid = fid;	/* may be zero */
+	argp->arg_offset = off;
+
+	if (rplen > (MAXPATHLEN - 1))
+		rplen = MAXPATHLEN - 1;
+	argp->arg_pathlen = rplen;
+	memcpy(argp->arg_path, rpath, rplen+1);
+
+	memset(&da, 0, sizeof (da));
+	da.data_ptr = (void *)argp;
+	da.data_size = sizeof (*argp);
+	da.rbuf = (void *) &ret;
+	da.rsize = sizeof (ret);
+
+	rc = door_ki_upcall(ssn->ss_door_handle, &da);
+
+	kmem_free(argp, sizeof (*argp));
+	if (rc != 0)
+		return (rc);
+	if (ret.ret_err != 0)
+		return (ret.ret_err);
+
+	return (0);
 }
 
-/*ARGSUSED*/
-int
-fusefs_call_truncate(fusefs_ssn_t *ssn,
-	int rplen, const char *rpath, u_offset_t off)
-{
-	return (EACCES);
-}
-
-/*ARGSUSED*/
 int
 fusefs_call_utimes(fusefs_ssn_t *ssn,
 	int rplen, const char *rpath,
 	timespec_t *atime, timespec_t *mtime)
 {
-	return (EACCES);
+	door_arg_t da;
+	struct fuse_utimes_arg *argp;
+	struct fuse_generic_ret ret;
+	int rc;
+
+	argp = kmem_zalloc(sizeof (*argp), KM_SLEEP);
+
+	argp->arg_opcode = FUSE_OP_UTIMES;
+	argp->arg_atime = atime->tv_sec;
+	argp->arg_atime_ns = atime->tv_nsec;
+	argp->arg_mtime = mtime->tv_sec;
+	argp->arg_mtime_ns = mtime->tv_nsec;
+
+	if (rplen > (MAXPATHLEN - 1))
+		rplen = MAXPATHLEN - 1;
+	argp->arg_pathlen = rplen;
+	memcpy(argp->arg_path, rpath, rplen+1);
+
+	memset(&da, 0, sizeof (da));
+	da.data_ptr = (void *)argp;
+	da.data_size = sizeof (*argp);
+	da.rbuf = (void *) &ret;
+	da.rsize = sizeof (ret);
+
+	rc = door_ki_upcall(ssn->ss_door_handle, &da);
+
+	kmem_free(argp, sizeof (*argp));
+	if (rc != 0)
+		return (rc);
+	if (ret.ret_err != 0)
+		return (ret.ret_err);
+
+	return (0);
 }
 
-/*ARGSUSED*/
 int
 fusefs_call_chmod(fusefs_ssn_t *ssn,
 	int rplen, const char *rpath, mode_t mode)
 {
-	return (EACCES);
+	door_arg_t da;
+	struct fuse_path_arg *argp;
+	struct fuse_generic_ret ret;
+	int rc;
+
+	argp = kmem_zalloc(sizeof (*argp), KM_SLEEP);
+
+	argp->arg_opcode = FUSE_OP_CHMOD;
+	argp->arg_val[0] = mode;
+
+	if (rplen > (MAXPATHLEN - 1))
+		rplen = MAXPATHLEN - 1;
+	argp->arg_pathlen = rplen;
+	memcpy(argp->arg_path, rpath, rplen+1);
+
+	memset(&da, 0, sizeof (da));
+	da.data_ptr = (void *)argp;
+	da.data_size = sizeof (*argp);
+	da.rbuf = (void *) &ret;
+	da.rsize = sizeof (ret);
+
+	rc = door_ki_upcall(ssn->ss_door_handle, &da);
+
+	kmem_free(argp, sizeof (*argp));
+	if (rc != 0)
+		return (rc);
+	if (ret.ret_err != 0)
+		return (ret.ret_err);
+
+	return (0);
 }
 
-/*ARGSUSED*/
 int
 fusefs_call_chown(fusefs_ssn_t *ssn,
 	int rplen, const char *rpath, uid_t uid, gid_t gid)
 {
-	return (EACCES);
+	door_arg_t da;
+	struct fuse_path_arg *argp;
+	struct fuse_generic_ret ret;
+	int rc;
+
+	argp = kmem_zalloc(sizeof (*argp), KM_SLEEP);
+
+	argp->arg_opcode = FUSE_OP_CHOWN;
+	argp->arg_val[0] = uid;
+	argp->arg_val[1] = gid;
+
+	if (rplen > (MAXPATHLEN - 1))
+		rplen = MAXPATHLEN - 1;
+	argp->arg_pathlen = rplen;
+	memcpy(argp->arg_path, rpath, rplen+1);
+
+	memset(&da, 0, sizeof (da));
+	da.data_ptr = (void *)argp;
+	da.data_size = sizeof (*argp);
+	da.rbuf = (void *) &ret;
+	da.rsize = sizeof (ret);
+
+	rc = door_ki_upcall(ssn->ss_door_handle, &da);
+
+	kmem_free(argp, sizeof (*argp));
+	if (rc != 0)
+		return (rc);
+	if (ret.ret_err != 0)
+		return (ret.ret_err);
+
+	return (0);
 }
 
-/*ARGSUSED*/
 int
 fusefs_call_delete(fusefs_ssn_t *ssn,
 	int rplen, const char *rpath)
 {
-	return (EACCES);
+	door_arg_t da;
+	struct fuse_path_arg *argp;
+	struct fuse_generic_ret ret;
+	int rc;
+
+	argp = kmem_zalloc(sizeof (*argp), KM_SLEEP);
+
+	argp->arg_opcode = FUSE_OP_DELETE;
+
+	if (rplen > (MAXPATHLEN - 1))
+		rplen = MAXPATHLEN - 1;
+	argp->arg_pathlen = rplen;
+	memcpy(argp->arg_path, rpath, rplen+1);
+
+	memset(&da, 0, sizeof (da));
+	da.data_ptr = (void *)argp;
+	da.data_size = sizeof (*argp);
+	da.rbuf = (void *) &ret;
+	da.rsize = sizeof (ret);
+
+	rc = door_ki_upcall(ssn->ss_door_handle, &da);
+
+	kmem_free(argp, sizeof (*argp));
+	if (rc != 0)
+		return (rc);
+	if (ret.ret_err != 0)
+		return (ret.ret_err);
+
+	return (0);
 }
 
-/*ARGSUSED*/
 int
 fusefs_call_rename(fusefs_ssn_t *ssn,
 	int oldplen, const char *oldpath,
-	int ndirlen, const char *ndirpath,
-	int nnmlen, const char *newname)
+	int dnlen, const char *dname,
+	int cnlen, const char *cname)
 {
-	return (EACCES);
+	door_arg_t da;
+	struct fuse_path2_arg *argp;
+	struct fuse_generic_ret ret;
+	char *p;
+	int plen, rc;
+
+	/*
+	 * Add one '/' and a null, except when we're
+	 * starting at the root dir, then just a null.
+	 */
+	plen = dnlen + cnlen + 2;
+	if (dnlen == 1)
+		--plen;
+	if (plen >= MAXPATHLEN)
+		return (ENAMETOOLONG);
+	if (oldplen > (MAXPATHLEN - 1))
+		oldplen = MAXPATHLEN - 1;
+
+	argp = kmem_zalloc(sizeof (*argp), KM_SLEEP);
+	argp->arg_opcode = FUSE_OP_RENAME;
+
+	/* Old name */
+	argp->arg_p1len = oldplen;
+	memcpy(argp->arg_path1, oldpath, oldplen+1);
+
+	/* New name (two parts) */
+	argp->arg_p2len = plen;
+	p = argp->arg_path2;
+	memcpy(p, dname, dnlen);
+	p += dnlen;
+	if (dnlen > 1)
+		*p++ = '/';
+	memcpy(p, cname, cnlen);
+
+	memset(&da, 0, sizeof (da));
+	da.data_ptr = (void *)argp;
+	da.data_size = sizeof (*argp);
+	da.rbuf = (void *) &ret;
+	da.rsize = sizeof (ret);
+
+	rc = door_ki_upcall(ssn->ss_door_handle, &da);
+
+	kmem_free(argp, sizeof (*argp));
+	if (rc != 0)
+		return (rc);
+	if (ret.ret_err != 0)
+		return (ret.ret_err);
+
+	return (0);
 }
 
-/*ARGSUSED*/
 int
 fusefs_call_mkdir(fusefs_ssn_t *ssn,
-	int ndirlen, const char *ndirpath,
-	int nnmlen, const char *newname)
+	int dnlen, const char *dname,
+	int cnlen, const char *cname)
 {
-	return (EACCES);
+	door_arg_t da;
+	struct fuse_path_arg *argp;
+	struct fuse_generic_ret ret;
+	char *p;
+	int plen, rc;
+
+	/*
+	 * Add one '/' and a null, except when we're
+	 * starting at the root dir, then just a null.
+	 */
+	plen = dnlen + cnlen + 2;
+	if (dnlen == 1)
+		--plen;
+	if (plen >= MAXPATHLEN)
+		return (ENAMETOOLONG);
+
+	argp = kmem_zalloc(sizeof (*argp), KM_SLEEP);
+
+	argp->arg_opcode = FUSE_OP_MKDIR;
+	argp->arg_pathlen = plen;
+
+	/* Fill in path from two parts. */
+	p = argp->arg_path;
+	memcpy(p, dname, dnlen);
+	p += dnlen;
+	if (dnlen > 1)
+		*p++ = '/';
+	memcpy(p, cname, cnlen);
+
+	memset(&ret, 0, sizeof (ret));
+	memset(&da, 0, sizeof (da));
+	da.data_ptr = (void *)argp;
+	da.data_size = sizeof (*argp);
+	da.rbuf = (void *) &ret;
+	da.rsize = sizeof (ret);
+
+	rc = door_ki_upcall(ssn->ss_door_handle, &da);
+
+	kmem_free(argp, sizeof (*argp));
+	if (rc != 0)
+		return (rc);
+	if (ret.ret_err != 0)
+		return (ret.ret_err);
+
+	return (0);
 }
 
-/*ARGSUSED*/
 int
 fusefs_call_rmdir(fusefs_ssn_t *ssn,
 	int rplen, const char *rpath)
 {
-	return (EACCES);
+	door_arg_t da;
+	struct fuse_path_arg *argp;
+	struct fuse_generic_ret ret;
+	int rc;
+
+	argp = kmem_zalloc(sizeof (*argp), KM_SLEEP);
+
+	argp->arg_opcode = FUSE_OP_RMDIR;
+
+	if (rplen > (MAXPATHLEN - 1))
+		rplen = MAXPATHLEN - 1;
+	argp->arg_pathlen = rplen;
+	memcpy(argp->arg_path, rpath, rplen+1);
+
+	memset(&da, 0, sizeof (da));
+	da.data_ptr = (void *)argp;
+	da.data_size = sizeof (*argp);
+	da.rbuf = (void *) &ret;
+	da.rsize = sizeof (ret);
+
+	rc = door_ki_upcall(ssn->ss_door_handle, &da);
+
+	kmem_free(argp, sizeof (*argp));
+	if (rc != 0)
+		return (rc);
+	if (ret.ret_err != 0)
+		return (ret.ret_err);
+
+	return (0);
 }

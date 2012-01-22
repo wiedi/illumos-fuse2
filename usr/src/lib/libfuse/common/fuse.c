@@ -10,19 +10,6 @@
 /* For pthread_rwlock_t */
 #define _GNU_SOURCE
 
-#include "fuse_i.h"
-#include "fuse_lowlevel.h"
-#include "fuse_opt.h"
-#include "fuse_misc.h"
-#include "fuse_common_compat.h"
-#include "fuse_compat.h"
-
-#ifdef	__SOLARIS__
-#include <sys/fs/fuse_ktypes.h>
-#else	/* __SOLARIS__ */
-#include "fuse_kernel.h"
-#endif	/* __SOLARIS__ */
-
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -38,6 +25,24 @@
 #include <sys/param.h>
 #include <sys/uio.h>
 #include <sys/time.h>
+
+/*
+ * Need the local headers after the system ones
+ * otherwise our lint fails on truncate64 defs.
+ */
+
+#include "fuse_i.h"
+#include "fuse_lowlevel.h"
+#include "fuse_opt.h"
+#include "fuse_misc.h"
+#include "fuse_common_compat.h"
+#include "fuse_compat.h"
+
+#ifdef	__SOLARIS__
+#include <sys/fs/fuse_ktypes.h>
+#else	/* __SOLARIS__ */
+#include "fuse_kernel.h"
+#endif	/* __SOLARIS__ */
 
 #define FUSE_DEFAULT_INTR_SIGNAL SIGUSR1
 
@@ -1359,15 +1364,17 @@ int fuse_fs_readdir(struct fuse_fs *fs, const char *path, void *buf,
 int fuse_fs_create(struct fuse_fs *fs, const char *path, mode_t mode,
 		   struct fuse_file_info *fi)
 {
-	fuse_get_context()->private_data = fs->user_data;
+	struct fuse_context *ctx = fuse_get_context();
+	int err;
+
+	ctx->private_data = fs->user_data;
 	if (fs->op.create) {
-		int err;
 
 		if (fs->debug)
 			fprintf(stderr,
 				"create flags: 0x%x %s 0%o umask=0%03o\n",
 				fi->flags, path, mode,
-				fuse_get_context()->umask);
+				ctx->umask);
 
 		err = fs->op.create(path, mode, fi);
 
@@ -1376,9 +1383,9 @@ int fuse_fs_create(struct fuse_fs *fs, const char *path, mode_t mode,
 				(unsigned long long) fi->fh, fi->flags, path);
 
 		return err;
-	} else {
-		return -ENOSYS;
 	}
+
+	return -ENOSYS;
 }
 
 int fuse_fs_lock(struct fuse_fs *fs, const char *path,
@@ -1513,12 +1520,14 @@ int fuse_fs_readlink(struct fuse_fs *fs, const char *path, char *buf,
 int fuse_fs_mknod(struct fuse_fs *fs, const char *path, mode_t mode,
 		  dev_t rdev)
 {
-	fuse_get_context()->private_data = fs->user_data;
+	struct fuse_context *ctx = fuse_get_context();
+
+	ctx->private_data = fs->user_data;
 	if (fs->op.mknod) {
 		if (fs->debug)
 			fprintf(stderr, "mknod %s 0%o 0x%llx umask=0%03o\n",
 				path, mode, (unsigned long long) rdev,
-				fuse_get_context()->umask);
+				ctx->umask);
 
 		return fs->op.mknod(path, mode, rdev);
 	} else {
@@ -1528,11 +1537,13 @@ int fuse_fs_mknod(struct fuse_fs *fs, const char *path, mode_t mode,
 
 int fuse_fs_mkdir(struct fuse_fs *fs, const char *path, mode_t mode)
 {
-	fuse_get_context()->private_data = fs->user_data;
+	struct fuse_context *ctx = fuse_get_context();
+
+	ctx->private_data = fs->user_data;
 	if (fs->op.mkdir) {
 		if (fs->debug)
 			fprintf(stderr, "mkdir %s 0%o umask=0%03o\n",
-				path, mode, fuse_get_context()->umask);
+				path, mode, ctx->umask);
 
 		return fs->op.mkdir(path, mode);
 	} else {

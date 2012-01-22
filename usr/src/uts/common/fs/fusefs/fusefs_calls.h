@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright 2011 Nexenta Systems, Inc.  All rights reserved.
+ * Copyright 2012 Nexenta Systems, Inc.  All rights reserved.
  */
 
 #ifndef _FS_FUSEFS_FUSEFS_CALLS_H_
@@ -64,11 +64,11 @@ int fusefs_call_flush(fusefs_ssn_t *, uint64_t fid);
 int fusefs_call_create(fusefs_ssn_t *,
 	int dnlen, const char *dname,
 	int cnlen, const char *cname,
-	uint64_t *ret_fid);
+	int mode, uint64_t *ret_fid);
 
-int fusefs_call_ftruncate(fusefs_ssn_t *, uint64_t fid, u_offset_t off);
-int fusefs_call_truncate(fusefs_ssn_t *,
-	int rplen, const char *rpath, u_offset_t off);
+int fusefs_call_ftruncate(fusefs_ssn_t *,
+	uint64_t fid, u_offset_t off,
+	int rplen, const char *rpath);
 
 int fusefs_call_utimes(fusefs_ssn_t *,
 	int rplen, const char *rpath,

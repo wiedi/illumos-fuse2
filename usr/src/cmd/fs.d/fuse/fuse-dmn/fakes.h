@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright 2011 Nexenta Systems, Inc.  All rights reserved.
+ * Copyright 2012 Nexenta Systems, Inc.  All rights reserved.
  */
 
 /*
@@ -27,7 +27,7 @@ int fake_getattr(const char *, struct fuse_stat *);
 int fake_opendir(const char *path, uint64_t *ret_fd);
 int fake_closedir(uint64_t fid);
 int fake_readdir(uint64_t fid, off64_t off, int *eof_flag,
-		 struct fuse_stat *, struct fuse_dirent *);
+		struct fuse_stat *, struct fuse_dirent *);
 
 int fake_open(const char *path, int oflags, uint64_t *ret_fd);
 int fake_close(uint64_t fid);

@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright 2011 Nexenta Systems, Inc.  All rights reserved.
+ * Copyright 2012 Nexenta Systems, Inc.  All rights reserved.
  */
 
 /*
@@ -130,7 +130,7 @@ do_readdir(void *cookie, void *vargp, size_t argsz)
 
 	memset(&ret, 0, sizeof (ret));
 	ret.ret_err = fake_readdir(arg->arg_fid, arg->arg_offset,
-		&at_eof, &ret.ret_st, &ret.ret_de);
+	    &at_eof, &ret.ret_st, &ret.ret_de);
 	if (at_eof)
 		ret.ret_flags |= 1;
 	door_return((void *)&ret, sizeof (ret), NULL, 0);
@@ -147,8 +147,7 @@ do_open(void *cookie, void *vargp, size_t argsz)
 		return;
 
 	memset(&ret, 0, sizeof (ret));
-	rc = fake_open(arg->arg_path, arg->arg_flags,
-		&ret.ret_fid);
+	rc = fake_open(arg->arg_path, arg->arg_val[0], &ret.ret_fid);
 	ret.ret_err = rc;
 	door_return((void *)&ret, sizeof (ret), NULL, 0);
 }
@@ -175,8 +174,8 @@ do_read(void *cookie, void *vargp, size_t argsz)
 
 	memset(&ret, 0, sizeof (ret));
 	ret.ret_err = fake_read(arg->arg_fid,
-		arg->arg_offset, arg->arg_length,
-		&ret.ret_data, &ret.ret_length);
+	    arg->arg_offset, arg->arg_length,
+	    &ret.ret_data, &ret.ret_length);
 	door_return((void *)&ret, sizeof (ret), NULL, 0);
 }
 
@@ -191,8 +190,8 @@ do_write(void *cookie, void *vargp, size_t argsz)
 
 	memset(&ret, 0, sizeof (ret));
 	ret.ret_err = fake_write(arg->arg_fid,
-		arg->arg_offset, arg->arg_length,
-		arg->arg_data, &ret.ret_length);
+	    arg->arg_offset, arg->arg_length,
+	    arg->arg_data, &ret.ret_length);
 	door_return((void *)&ret, sizeof (ret), NULL, 0);
 }
 
@@ -228,7 +227,7 @@ dmn_dispatch(void *cookie, char *cargp, size_t argsz,
 	}
 
 	/*
-	 * Decode the op. code and dispatch.	
+	 * Decode the op. code and dispatch.
 	 * These return only on errors.
 	 */
 	argp = vargp;
@@ -282,7 +281,7 @@ dmn_dispatch(void *cookie, char *cargp, size_t argsz,
 
 	default:
 		fprintf(stderr, "dmn_dispatch, unimpl. op %d\n",
-			argp->arg_opcode);
+		    argp->arg_opcode);
 		rc = ENOSYS;
 		break;
 	}

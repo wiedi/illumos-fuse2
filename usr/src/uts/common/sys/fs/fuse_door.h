@@ -10,51 +10,54 @@
  */
 
 /*
- * Copyright 2011 Nexenta Systems, Inc.  All rights reserved.
+ * Copyright 2012 Nexenta Systems, Inc.  All rights reserved.
  */
 
 #ifndef _FS_FUSEFS_FUSE_DOOR_H_
 #define	_FS_FUSEFS_FUSE_DOOR_H_
 
 #include <sys/param.h>
+#include <sys/time.h>
 #include <sys/fs/fuse_ktypes.h>
 
 /*
- * Door calls implemented by fuse-dmn
+ * Door call arg/ret formats used by fuse-dmn and libfuse
+ *
+ * Careful modifying these.  Make sure offsets and sizes
+ * work correctly for both 32/64 bit.  See ioc_check.ref
  */
 
 /* Maximum I/O size per FUSE read/write call. */
 #define	FUSE_MAX_IOSIZE	MAXBSIZE	/* 8K for now */
 
 /* Op. codes. */
-typedef enum {
-	FUSE_OP_INIT = 1,
-	FUSE_OP_DESTROY,
-	FUSE_OP_STATVFS,
+typedef enum {			/* arg type, ret type */
+	FUSE_OP_INIT = 1,	/* generic, generic */
+	FUSE_OP_DESTROY,	/* generic, generic */
+	FUSE_OP_STATVFS,	/* generic, statvfs */
 
-	FUSE_OP_FGETATTR,
-	FUSE_OP_GETATTR,
+	FUSE_OP_FGETATTR,	/* fid, getattr */
+	FUSE_OP_GETATTR,	/* path, getattr */
 
-	FUSE_OP_OPENDIR,
-	FUSE_OP_CLOSEDIR,
-	FUSE_OP_READDIR,
+	FUSE_OP_OPENDIR,	/* path, fid */
+	FUSE_OP_CLOSEDIR,	/* fid, generic */
+	FUSE_OP_READDIR,	/* read, readdir */
 
-	FUSE_OP_OPEN,
-	FUSE_OP_CLOSE,
-	FUSE_OP_READ,
-	FUSE_OP_WRITE,
-	FUSE_OP_FLUSH,
-	/* modify */
-	FUSE_OP_CREATE,
-	FUSE_OP_FTRUNCATE,
-	FUSE_OP_TRUNCATE,
-	FUSE_OP_UTIMES,
-	FUSE_OP_CHMOD,
-	FUSE_OP_CHOWN,
-	FUSE_OP_DELETE,
-	FUSE_OP_RENAME,
-	FUSE_OP_MKDIR,
-	FUSE_OP_RMDIR,
+	FUSE_OP_OPEN,		/* path, fid */
+	FUSE_OP_CLOSE,		/* fid, generic */
+	FUSE_OP_READ,		/* read, read */
+	FUSE_OP_WRITE,		/* write, write */
+	FUSE_OP_FLUSH,		/* fid, generic */
+
+	FUSE_OP_CREATE,		/* path, fid */
+	FUSE_OP_FTRUNC,		/* ftrunc, generic */
+	FUSE_OP_UTIMES,		/* utimes, generic */
+	FUSE_OP_CHMOD,		/* path, generic */
+	FUSE_OP_CHOWN,		/* chown, generic */
+	FUSE_OP_DELETE,		/* path, generic */
+	FUSE_OP_RENAME,		/* path2, generic */
+	FUSE_OP_MKDIR,		/* path, generic */
+	FUSE_OP_RMDIR,		/* path, generic */
 } fuse_opcode_t;
 
 /* For ops that don't send data. */
@@ -98,10 +101,10 @@ struct fuse_getattr_ret {
 	struct fuse_stat ret_st;
 };
 
-/* For ops that send one path name. */
+/* For ops that send one path name (and one or two scalars). */
 struct fuse_path_arg {
 	uint32_t arg_opcode;
-	uint32_t arg_flags;
+	uint32_t arg_val[2];
 	uint32_t arg_pathlen;
 	char arg_path[MAXPATHLEN];
 };
@@ -115,17 +118,6 @@ struct fuse_path2_arg {
 	uint32_t arg_p2len;
 	char arg_path1[MAXPATHLEN];
 	char arg_path2[MAXPATHLEN];
-};
-
-struct fuse_readdir_arg {
-	uint32_t arg_opcode;
-	uint32_t arg_flags;
-
-	uint64_t arg_fid;
-	off64_t arg_offset;
-	/* FUSE wants the path here too. */
-	uint32_t arg_pathlen;
-	char arg_path[MAXPATHLEN];
 };
 
 struct fuse_readdir_ret {
@@ -171,6 +163,28 @@ struct fuse_write_arg {
 struct fuse_write_ret {
 	uint32_t ret_err;
 	uint32_t ret_length;
+};
+
+struct fuse_ftrunc_arg {
+	uint32_t arg_opcode;
+	uint32_t arg_flags;
+	uint64_t arg_fid;	/* non-zero for ftruncate */
+	off64_t arg_offset;
+	uint32_t arg__pad;
+	uint32_t arg_pathlen;
+	char arg_path[MAXPATHLEN];
+};
+
+struct fuse_utimes_arg {
+	uint32_t arg_opcode;
+	uint32_t arg_flags;
+	uint64_t arg_atime;
+	uint64_t arg_mtime;
+	uint32_t arg_atime_ns;
+	uint32_t arg_mtime_ns;
+	uint32_t arg__pad;
+	uint32_t arg_pathlen;
+	char arg_path[MAXPATHLEN];
 };
 
 #endif /* !_FS_FUSEFS_FUSE_DOOR_H_ */

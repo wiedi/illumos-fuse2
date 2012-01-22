@@ -21,7 +21,7 @@
 
 #
 # Copyright (c) 1989, 2010, Oracle and/or its affiliates. All rights reserved.
-# Copyright 2011 Nexenta Systems, Inc.  All rights reserved.
+# Copyright 2012 Nexenta Systems, Inc.  All rights reserved.
 #
 
 #
@@ -165,8 +165,15 @@ XRPRUNE = pkgdefs prototypes xmod
 XRINCDIRS = uts/common head ucbhead
 $(CLOSED_BUILD)XRINCDIRS = uts/common ../closed/uts/common head ucbhead
 
-cscope.out tags: FRC
-	$(XREF) -f -x $@
+TAGS: cscope.files
+	exctags -e -L - < cscope.files
+
+cscope.out tags: cscope.files
+	$(XREF) -f -x cscope.out
+
+cscope.files : FRC
+	find . -name '*.[ch]' -print > cscope.files.tmp
+	-mv -f cscope.files.tmp cscope.files
 
 FRC:
 

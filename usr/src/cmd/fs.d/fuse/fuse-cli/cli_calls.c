@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright 2011 Nexenta Systems, Inc.  All rights reserved.
+ * Copyright 2012 Nexenta Systems, Inc.  All rights reserved.
  */
 
 /*
@@ -424,7 +424,7 @@ cli_call_open(fuse_ssn_t *ssn,
 	argp = umem_zalloc(sizeof (*argp), UMEM_NOFAIL);
 
 	argp->arg_opcode = FUSE_OP_OPEN;
-	argp->arg_flags = oflags;
+	argp->arg_val[0] = oflags;
 	argp->arg_pathlen = rplen;
 	memcpy(argp->arg_path, rpath, rplen);
 	memset(&ret, 0, sizeof (ret));
@@ -496,7 +496,7 @@ cli_call_read(fuse_ssn_t *ssn,
 	arg.arg_length = length;
 
 	/* XXX: Later, make allocsize dynamic. */
-	allocsize = sizeof(*retp);
+	allocsize = sizeof (*retp);
 	retp = umem_alloc(allocsize, UMEM_NOFAIL);
 
 	memset(&da, 0, sizeof (da));
@@ -536,7 +536,7 @@ cli_call_write(fuse_ssn_t *ssn,
 		return (EFAULT);
 
 	/* XXX: Later, make allocsize dynamic. */
-	allocsize = sizeof(*argp);
+	allocsize = sizeof (*argp);
 	argp = umem_alloc(allocsize, UMEM_NOFAIL);
 
 	argp->arg_opcode = FUSE_OP_WRITE;

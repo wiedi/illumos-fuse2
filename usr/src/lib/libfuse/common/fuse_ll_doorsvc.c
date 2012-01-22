@@ -1,10 +1,10 @@
 /*
-  FUSE: Filesystem in Userspace
-  Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
-
-  This program can be distributed under the terms of the GNU LGPLv2.
-  See the file COPYING.LIB
-*/
+ * FUSE: Filesystem in Userspace
+ * Copyright (C) 2001-2007  Miklos Szeredi <miklos@szeredi.hu>
+ *
+ * This program can be distributed under the terms of the GNU LGPLv2.
+ * See the file COPYING.LIB
+ */
 
 #include "fuse_i.h"
 /* Instead of "fuse_kernel.h" we have... */
@@ -16,6 +16,7 @@
 
 #include <sys/file.h>
 #include <sys/fcntl.h>
+#include <sys/note.h>
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -28,19 +29,19 @@
 #include <thread.h>
 #include <signal.h>
 
-/** XXX: Version number of this interface */
-#define FUSE_KERNEL_VERSION 7
+/* XXX: Version number of this interface */
+#define	FUSE_KERNEL_VERSION 7
 
-/** XXX: Minor version number of this interface */
-#define FUSE_KERNEL_MINOR_VERSION 12
+/* XXX: Minor version number of this interface */
+#define	FUSE_KERNEL_MINOR_VERSION 12
 
-#define PARAM(inarg) (((char *)(inarg)) + sizeof(*(inarg)))
-#define OFFSET_MAX 0x7fffffffffffffffLL
+#define	PARAM(inarg) (((char *)(inarg)) + sizeof(*(inarg)))
+#define	OFFSET_MAX 0x7fffffffffffffffLL
 
-#define FUSE_NAME_OFFSET offsetof(struct fuse_dirent, d_name)
-#define FUSE_DIRENT_ALIGN(x) (((x) + sizeof(uint64_t) - 1) & \
+#define	FUSE_NAME_OFFSET offsetof(struct fuse_dirent, d_name)
+#define	FUSE_DIRENT_ALIGN(x) (((x) + sizeof(uint64_t) - 1) & \
 				~(sizeof(uint64_t) - 1))
-#define FUSE_DIRENT_SIZE(d) \
+#define	FUSE_DIRENT_SIZE(d) \
 	FUSE_DIRENT_ALIGN(FUSE_NAME_OFFSET + (d)->d_nmlen)
 
 typedef struct fuse_ll sol_ll_t;
@@ -85,52 +86,13 @@ static void convert_stat(const struct stat *stbuf,
 	kst->st_blksize = stbuf->st_blksize;
 }
 
-
-static	size_t iov_length(const struct iovec *iov, size_t count)
-{
-	size_t seg;
-	size_t ret = 0;
-
-	for (seg = 0; seg < count; seg++)
-		ret += iov[seg].iov_len;
-	return ret;
-}
-
 static void list_init_req(struct fuse_req *req)
 {
 	req->next = req;
 	req->prev = req;
 }
 
-static void list_del_req(struct fuse_req *req)
-{
-	struct fuse_req *prev = req->prev;
-	struct fuse_req *next = req->next;
-	prev->next = next;
-	next->prev = prev;
-}
-
-static void list_add_req(struct fuse_req *req, struct fuse_req *next)
-{
-	struct fuse_req *prev = next->prev;
-	req->next = next;
-	req->prev = prev;
-	prev->next = req;
-	next->prev = req;
-}
-
-static void destroy_req(fuse_req_t req)
-{
-	pthread_mutex_destroy(&req->lock);
-	free(req);
-}
-
-static int send_reply(fuse_req_t req, int error, const void *arg,
-		      size_t argsize)
-{
-	return -ENOSYS;
-}
-
+/* ARGSUSED */
 int fuse_reply_iov(fuse_req_t req, const struct iovec *iov, int count)
 {
 	return -ENOSYS;
@@ -148,7 +110,8 @@ char *fuse_add_dirent(char *buf, const char *name, const struct stat *stbuf,
 	unsigned entlen = FUSE_NAME_OFFSET + namelen;
 	unsigned entsize = fuse_dirent_size(namelen);
 	unsigned padlen = entsize - entlen;
-	struct fuse_dirent *dirent = (struct fuse_dirent *) buf;
+	/* LINTED: alignment */
+	struct fuse_dirent *dirent = (struct fuse_dirent *)buf;
 
 	dirent->d_ino = stbuf->st_ino;
 	dirent->d_off = off;
@@ -188,11 +151,13 @@ static void convert_statvfs(const struct statvfs *stbuf,
 	kstatfs->f_flag		= stbuf->f_flag;
 }
 
+/* ARGSUSED */
 int fuse_reply_err(fuse_req_t req, int err)
 {
 	return -ENOSYS;
 }
 
+/* ARGSUSED */
 void fuse_reply_none(fuse_req_t req)
 {
 }
@@ -207,16 +172,6 @@ static unsigned long calc_timeout_sec(double t)
 		return (unsigned long) t;
 }
 
-static unsigned int calc_timeout_nsec(double t)
-{
-	double f = t - (double) calc_timeout_sec(t);
-	if (f < 0.0)
-		return 0;
-	else if (f >= 0.999999999)
-		return 999999999;
-	else
-		return (unsigned int) (f * 1.0e9);
-}
 
 
 #if 0	/* XXX - see do_open */
@@ -233,63 +188,75 @@ static void fill_open(struct fuse_open_out *arg,
 }
 #endif	/* XXX */
 
+/* ARGSUSED */
 int fuse_reply_entry(fuse_req_t req, const struct fuse_entry_param *e)
 {
 	return -ENOSYS;
 }
 
+/* ARGSUSED */
 int fuse_reply_create(fuse_req_t req, const struct fuse_entry_param *e,
 		      const struct fuse_file_info *f)
 {
 	return -ENOSYS;
 }
 
+/* ARGSUSED */
 int fuse_reply_attr(fuse_req_t req, const struct stat *attr,
 		    double attr_timeout)
 {
 	return (-ENOSYS);
 }
 
+/* ARGSUSED */
 int fuse_reply_readlink(fuse_req_t req, const char *linkname)
 {
 	return -ENOSYS;
 }
 
+/* ARGSUSED */
 int fuse_reply_open(fuse_req_t req, const struct fuse_file_info *f)
 {
 	return -ENOSYS;
 }
 
+/* ARGSUSED */
 int fuse_reply_write(fuse_req_t req, size_t count)
 {
 	return -ENOSYS;
 }
 
+/* ARGSUSED */
 int fuse_reply_buf(fuse_req_t req, const char *buf, size_t size)
 {
 	return -ENOSYS;
 }
 
+/* ARGSUSED */
 int fuse_reply_statfs(fuse_req_t req, const struct statvfs *stbuf)
 {
 	return -ENOSYS;
 }
 
+/* ARGSUSED */
 int fuse_reply_xattr(fuse_req_t req, size_t count)
 {
 	return -ENOSYS;
 }
 
+/* ARGSUSED */
 int fuse_reply_lock(fuse_req_t req, struct flock *lock)
 {
 	return -ENOSYS;
 }
 
+/* ARGSUSED */
 int fuse_reply_bmap(fuse_req_t req, uint64_t idx)
 {
 	return -ENOSYS;
 }
 
+/* ARGSUSED */
 int fuse_reply_ioctl_retry(fuse_req_t req,
 			   const struct iovec *in_iov, size_t in_count,
 			   const struct iovec *out_iov, size_t out_count)
@@ -297,17 +264,20 @@ int fuse_reply_ioctl_retry(fuse_req_t req,
 	return -ENOSYS;
 }
 
+/* ARGSUSED */
 int fuse_reply_ioctl(fuse_req_t req, int result, const void *buf, size_t size)
 {
 	return -ENOSYS;
 }
 
+/* ARGSUSED */
 int fuse_reply_ioctl_iov(fuse_req_t req, int result, const struct iovec *iov,
 			 int count)
 {
 	return -ENOSYS;
 }
 
+/* ARGSUSED */
 int fuse_reply_poll(fuse_req_t req, unsigned revents)
 {
 	return -ENOSYS;
@@ -368,9 +338,11 @@ sol_lib_destroy(void *data)
  * they're similar in spirit to the fuse_ll_ops.
  */
 
+/* FUSE_OP_INIT */
 static void
 do_init(sol_ll_t *f, void *vargp, size_t argsz)
 {
+	_NOTE(ARGUNUSED(argsz));
 	struct fuse_generic_arg *arg = vargp;
 	struct fuse_generic_ret ret = {0};
 	size_t bufsize = fuse_chan_bufsize(solaris_se->ch);
@@ -449,10 +421,11 @@ do_init(sol_ll_t *f, void *vargp, size_t argsz)
 	door_return((void *)&ret, sizeof (ret), NULL, 0);
 }
 
+/* FUSE_OP_DESTROY */
 static void
 do_destroy(sol_ll_t *ll, void *vargp, size_t argsz)
 {
-	struct fuse_generic_arg *arg = vargp;
+	_NOTE(ARGUNUSED(vargp, argsz));
 	struct fuse_generic_ret ret = {0};
 
 	if (ll->debug)
@@ -469,10 +442,11 @@ do_destroy(sol_ll_t *ll, void *vargp, size_t argsz)
 	door_return((void *)&ret, sizeof (ret), NULL, 0);
 }
 
-/*ARGSUSED*/
+/* FUSE_OP_STATVFS */
 static void
 do_statfs(sol_ll_t *ll, void *vargp, size_t argsz)
 {
+	_NOTE(ARGUNUSED(vargp, argsz));
 	struct fuse *f = ll->userdata;
 	struct fuse_statvfs_ret ret = { 0 };
 	struct statvfs stvfs;
@@ -489,6 +463,7 @@ do_statfs(sol_ll_t *ll, void *vargp, size_t argsz)
 	door_return((void *)&ret, sizeof (ret), NULL, 0);
 }
 
+/* FUSE_OP_FGETATTR */
 static void
 do_fgetattr(sol_ll_t *ll, void *vargp, size_t argsz)
 {
@@ -498,6 +473,11 @@ do_fgetattr(sol_ll_t *ll, void *vargp, size_t argsz)
 	struct fuse_file_info fi;
 	struct stat st;
 	int err;
+
+	if (argsz != sizeof (*arg)) {
+		err = -EINVAL;
+		goto out;
+	}
 
 	memset(&fi, 0, sizeof (fi));
 	fi.fh = arg->arg_fid;
@@ -510,10 +490,12 @@ do_fgetattr(sol_ll_t *ll, void *vargp, size_t argsz)
 		convert_stat(&st, &ret.ret_st);
 	}
 
+out:
 	ret.ret_err = -err;
 	door_return((void *)&ret, sizeof (ret), NULL, 0);
 }
 
+/* FUSE_OP_GETATTR */
 static void
 do_getattr(sol_ll_t *ll, void *vargp, size_t argsz)
 {
@@ -523,7 +505,7 @@ do_getattr(sol_ll_t *ll, void *vargp, size_t argsz)
 	struct stat st;
 	int err;
 
-	if (argsz < sizeof (*arg)) {
+	if (argsz != sizeof (*arg)) {
 		err = -EINVAL;
 		goto out;
 	}
@@ -540,6 +522,7 @@ out:
 	door_return((void *)&ret, sizeof (ret), NULL, 0);
 }
 
+/* FUSE_OP_OPENDIR */
 static void
 do_opendir(sol_ll_t *ll, void *vargp, size_t argsz)
 {
@@ -547,10 +530,10 @@ do_opendir(sol_ll_t *ll, void *vargp, size_t argsz)
 	struct fuse_path_arg *arg = vargp;
 	struct fuse_fid_ret ret = { 0 };
 	struct fuse_file_info fi;
-	struct fuse_dh *dh;
+	struct fuse_dh *dh = NULL;
 	int err;
 
-	if (argsz < sizeof (*arg)) {
+	if (argsz != sizeof (*arg)) {
 		err = -EINVAL;
 		goto out;
 	}
@@ -582,11 +565,10 @@ do_opendir(sol_ll_t *ll, void *vargp, size_t argsz)
 	fi.flags = O_RDONLY;
 
 	err = fuse_fs_opendir(f->fs, arg->arg_path, &fi);
-	if (err)
-		goto out;
-
-	dh->fh = fi.fh;
-	ret.ret_fid = (uintptr_t) dh;
+	if (err == 0) {
+		dh->fh = fi.fh;
+		ret.ret_fid = (uintptr_t) dh;
+	}
 
  out:
 	if (err) {
@@ -600,6 +582,7 @@ do_opendir(sol_ll_t *ll, void *vargp, size_t argsz)
 	door_return((void *)&ret, sizeof (ret), NULL, 0);
 }
 
+/* FUSE_OP_CLOSEDIR */
 static void
 do_closedir(sol_ll_t *ll, void *vargp, size_t argsz)
 {
@@ -610,7 +593,7 @@ do_closedir(sol_ll_t *ll, void *vargp, size_t argsz)
 	struct fuse_dh *dh;
 	int err = 0;
 
-	if (argsz < sizeof (*arg)) {
+	if (argsz != sizeof (*arg)) {
 		err = -EINVAL;
 		goto out;
 	}
@@ -631,6 +614,7 @@ out:
 	door_return((void *)&ret, sizeof (ret), NULL, 0);
 }
 
+/* FUSE_OP_READDIR */
 static void
 do_readdir(sol_ll_t *ll, void *vargp, size_t argsz)
 {
@@ -641,15 +625,14 @@ do_readdir(sol_ll_t *ll, void *vargp, size_t argsz)
 	struct stat st = { 0 };
 	struct fuse_dh *dh;
 	struct fuse_dirent *de;
-	char *fmt, *path = NULL;
+	char *fmt, *p, *path = NULL;
 	size_t off, size;
 	int err = 0;
-	int at_eof = 0;
 	int nmlen, pathlen;
 
-	if (argsz < sizeof (*arg)) {
+	if (argsz != sizeof (*arg)) {
 		err = -EINVAL;
-		goto out;
+		goto out2;
 	}
 
 	/* See fuse_lib_readdir, get_dirhandle */
@@ -696,8 +679,10 @@ do_readdir(sol_ll_t *ll, void *vargp, size_t argsz)
 	}
 
 	/* fuse_reply_buf(req, dh->contents + off, size); */
+	/* LINTED: alignment */
 	de = (struct fuse_dirent *) (dh->contents + off);
-	nmlen = strnlen(de->d_name, 255);
+	/* XXX nmlen = strnlen(de->d_name, 255); */
+	nmlen = de->d_nmlen;
 
 	if (de->d_name[0] == '.' && (nmlen == 1 ||
 	    de->d_name[1] == '.' && nmlen == 2)) {
@@ -710,8 +695,14 @@ do_readdir(sol_ll_t *ll, void *vargp, size_t argsz)
 			err = -ENOMEM;
 			goto out;
 		}
-		fmt = (dh->pathlen > 1) ? "%s/%s" : "%s%s";
-		snprintf(path, pathlen, fmt, dh->path, de->d_name);
+		p = path;
+		memcpy(p, dh->path, dh->pathlen);
+		p += dh->pathlen;
+		if (dh->pathlen > 1)
+			*p++ = '/';
+		memcpy(p, de->d_name, de->d_nmlen);
+		p += de->d_nmlen;
+		*p = '\0';
 
 		/* Get the stat for this dirent */
 		err = fuse_fs_getattr(f->fs, path, &st);
@@ -728,7 +719,10 @@ do_readdir(sol_ll_t *ll, void *vargp, size_t argsz)
 	ret.ret_de.d_ino = st.st_ino;
 	ret.ret_de.d_off = de->d_off;
 	ret.ret_de.d_nmlen = de->d_nmlen;
-	memcpy(ret.ret_de.d_name, de->d_name, de->d_nmlen + 1);
+	p = ret.ret_de.d_name;
+	memcpy(p, de->d_name, de->d_nmlen);
+	p += de->d_nmlen;
+	*p = '\0';
 
 	if (de->d_off >= dh->len) {
 		ret.ret_flags |= 1; /* EOF */
@@ -739,10 +733,14 @@ out:
 		free(path);
 	pthread_mutex_unlock(&dh->lock);
 
+out2:
+	if (ll->debug)
+		fprintf(stderr, "readdir, err=%d\n", err);
 	ret.ret_err = -err;
 	door_return((void *)&ret, sizeof (ret), NULL, 0);
 }
 
+/* FUSE_OP_OPEN */
 static void
 do_open(sol_ll_t *ll, void *vargp, size_t argsz)
 {
@@ -752,32 +750,33 @@ do_open(sol_ll_t *ll, void *vargp, size_t argsz)
 	struct fuse_file_info fi;
 	int err;
 
-	if (argsz < sizeof (*arg)) {
+	if (argsz != sizeof (*arg)) {
 		err = -EINVAL;
 		goto out;
 	}
 
 	memset(&fi, 0, sizeof(fi));
 	/* arg_flags are sys/file.h FREAD, FWRITE, etc */
-	if (arg->arg_flags & FWRITE)
+	if (arg->arg_val[0] & FWRITE)
 		fi.flags = O_RDWR;
 	else
 		fi.flags = O_RDONLY;
 
 	err = fuse_fs_open(f->fs, arg->arg_path, &fi);
-	if (err)
-		goto out;
-
-	ret.ret_fid = fi.fh;
+	if (err == 0) {
+		ret.ret_fid = fi.fh;
+	}
 
 out:
 	ret.ret_err = -err;
 	door_return((void *)&ret, sizeof (ret), NULL, 0);
 }
 
+/* FUSE_OP_CLOSE */
 static void
 do_close(sol_ll_t *ll, void *vargp, size_t argsz)
 {
+	_NOTE(ARGUNUSED(argsz));
 	struct fuse *f = ll->userdata;
 	struct fuse_fid_arg *arg = vargp;
 	struct fuse_generic_ret ret = { 0 };
@@ -798,6 +797,7 @@ do_close(sol_ll_t *ll, void *vargp, size_t argsz)
 	door_return((void *)&ret, sizeof (ret), NULL, 0);
 }
 
+/* FUSE_OP_READ */
 static void
 do_read(sol_ll_t *ll, void *vargp, size_t argsz)
 {
@@ -831,6 +831,7 @@ out:
 	door_return((void *)&ret, sizeof (ret), NULL, 0);
 }
 
+/* FUSE_OP_WRITE */
 static void
 do_write(sol_ll_t *ll, void *vargp, size_t argsz)
 {
@@ -840,8 +841,10 @@ do_write(sol_ll_t *ll, void *vargp, size_t argsz)
 	struct fuse_file_info fi;
 	int err, res;
 
-	if (argsz < sizeof (*arg))
-		return;
+	if (argsz < sizeof (*arg)) {
+		err = -EINVAL;
+		goto out;
+	}
 
 	memset(&fi, 0, sizeof(fi));
 	fi.fh = arg->arg_fid;
@@ -863,20 +866,262 @@ out:
 	door_return((void *)&ret, sizeof (ret), NULL, 0);
 }
 
+/* FUSE_OP_FLUSH */
 static void
 do_flush(sol_ll_t *ll, void *vargp, size_t argsz)
 {
+	_NOTE(ARGUNUSED(argsz));
 	struct fuse *f = ll->userdata;
 	struct fuse_fid_arg *arg = vargp;
 	struct fuse_generic_ret ret = { 0 };
 	struct fuse_file_info fi;
 	const char *path = "-"; /* XXX - OK? */
 
+	if (argsz != sizeof (*arg))
+		goto out;
+
 	memset(&fi, 0, sizeof(fi));
 	fi.fh = arg->arg_fid;
 	fi.fh_old = fi.fh;
 	fuse_fs_flush(f->fs, path, &fi);
 
+out:
+	door_return((void *)&ret, sizeof (ret), NULL, 0);
+}
+
+/* FUSE_OP_CREATE */
+static void
+do_create(sol_ll_t *ll, void *vargp, size_t argsz)
+{
+	struct fuse *f = ll->userdata;
+	struct fuse_path_arg *arg = vargp;
+	struct fuse_fid_ret ret = { 0 };
+	struct fuse_file_info fi;
+	mode_t mode;
+	int err;
+
+	if (argsz != sizeof (*arg)) {
+		err = -EINVAL;
+		goto out;
+	}
+
+	/*
+	 * arg_val[0] is requested access (open mode)
+	 * here we want file type + mode.
+	 */
+	mode = arg->arg_val[0] | S_IFREG | S_IRUSR;
+	memset(&fi, 0, sizeof(fi));
+	err = fuse_fs_create(f->fs, arg->arg_path, mode, &fi);
+	if (err == 0) {
+		ret.ret_fid = fi.fh;
+		goto out;
+	}
+
+	if (err != -ENOSYS)
+		goto out;
+
+	/*
+	 * OK, _create gave ENOSYS.  Try mknod+open
+	 */
+	memset(&fi, 0, sizeof(fi));
+	err = fuse_fs_mknod(f->fs, arg->arg_path, mode, 0);
+	if (err == 0) {
+		err = fuse_fs_open(f->fs, arg->arg_path, &fi);
+		if (err == 0)
+			goto out;
+		(void) fuse_fs_unlink(f->fs, arg->arg_path);
+	}
+
+out:
+	ret.ret_err = -err;
+	door_return((void *)&ret, sizeof (ret), NULL, 0);
+}
+
+/* FUSE_OP_FTRUNC */
+static void
+do_ftruncate(sol_ll_t *ll, void *vargp, size_t argsz)
+{
+	struct fuse *f = ll->userdata;
+	struct fuse_ftrunc_arg *arg = vargp;
+	struct fuse_generic_ret ret = { 0 };
+	struct fuse_file_info fi;
+	int err;
+
+	if (argsz != sizeof (*arg)) {
+		err = -EINVAL;
+		goto out;
+	}
+
+	if (arg->arg_fid != 0) {
+		memset(&fi, 0, sizeof(fi));
+		fi.fh = arg->arg_fid;
+		fi.fh_old = fi.fh;
+
+		err = fuse_fs_ftruncate(f->fs, arg->arg_path,
+					arg->arg_offset, &fi);
+	} else {
+		err = fuse_fs_truncate(f->fs, arg->arg_path,
+					arg->arg_offset);
+	}
+
+out:
+	ret.ret_err = -err;
+	door_return((void *)&ret, sizeof (ret), NULL, 0);
+}
+
+/* FUSE_OP_UTIMES */
+static void
+do_utimes(sol_ll_t *ll, void *vargp, size_t argsz)
+{
+	_NOTE(ARGUNUSED(argsz));
+	struct fuse *f = ll->userdata;
+	struct fuse_utimes_arg *arg = vargp;
+	struct fuse_generic_ret ret = { 0 };
+	struct timespec tv[2]; /* atime, mtime */
+	int err;
+
+	if (argsz != sizeof (*arg)) {
+		err = -EINVAL;
+		goto out;
+	}
+
+	memset(tv, 0, sizeof (tv));
+	tv[0].tv_sec = arg->arg_atime;
+	tv[0].tv_nsec = arg->arg_atime_ns;
+	tv[1].tv_sec = arg->arg_mtime;
+	tv[1].tv_nsec = arg->arg_mtime_ns;
+
+	err = fuse_fs_utimens(f->fs, arg->arg_path, tv);
+
+out:
+	ret.ret_err = -err;
+	door_return((void *)&ret, sizeof (ret), NULL, 0);
+}
+
+/* FUSE_OP_CHMOD */
+static void
+do_chmod(sol_ll_t *ll, void *vargp, size_t argsz)
+{
+	struct fuse *f = ll->userdata;
+	struct fuse_path_arg *arg = vargp;
+	struct fuse_generic_ret ret = { 0 };
+	int err;
+
+	if (argsz != sizeof (*arg)) {
+		err = -EINVAL;
+		goto out;
+	}
+
+	/* arg_val[0] is the mode */
+	err = fuse_fs_chmod(f->fs, arg->arg_path, arg->arg_val[0]);
+
+out:
+	ret.ret_err = -err;
+	door_return((void *)&ret, sizeof (ret), NULL, 0);
+}
+
+/* FUSE_OP_CHOWN */
+static void
+do_chown(sol_ll_t *ll, void *vargp, size_t argsz)
+{
+	struct fuse *f = ll->userdata;
+	struct fuse_path_arg *arg = vargp;
+	struct fuse_generic_ret ret = { 0 };
+	int err;
+
+	if (argsz != sizeof (*arg)) {
+		err = -EINVAL;
+		goto out;
+	}
+
+	err = fuse_fs_chown(f->fs, arg->arg_path,
+	    arg->arg_val[0], arg->arg_val[1]);
+
+out:
+	ret.ret_err = -err;
+	door_return((void *)&ret, sizeof (ret), NULL, 0);
+}
+
+/* FUSE_OP_DELETE */
+static void
+do_delete(sol_ll_t *ll, void *vargp, size_t argsz)
+{
+	struct fuse *f = ll->userdata;
+	struct fuse_path_arg *arg = vargp;
+	struct fuse_generic_ret ret = { 0 };
+	int err;
+
+	if (argsz != sizeof (*arg)) {
+		err = -EINVAL;
+		goto out;
+	}
+
+	err = fuse_fs_unlink(f->fs, arg->arg_path);
+
+out:
+	ret.ret_err = -err;
+	door_return((void *)&ret, sizeof (ret), NULL, 0);
+}
+
+/* FUSE_OP_RENAME */
+static void
+do_rename(sol_ll_t *ll, void *vargp, size_t argsz)
+{
+	struct fuse *f = ll->userdata;
+	struct fuse_path2_arg *arg = vargp;
+	struct fuse_generic_ret ret = { 0 };
+	int err;
+
+	if (argsz != sizeof (*arg)) {
+		err = -EINVAL;
+		goto out;
+	}
+	err = fuse_fs_rename(f->fs, arg->arg_path1, arg->arg_path2);
+
+out:
+	ret.ret_err = -err;
+	door_return((void *)&ret, sizeof (ret), NULL, 0);
+}
+
+/* FUSE_OP_MKDIR */
+static void
+do_mkdir(sol_ll_t *ll, void *vargp, size_t argsz)
+{
+	struct fuse *f = ll->userdata;
+	struct fuse_path_arg *arg = vargp;
+	struct fuse_generic_ret ret = { 0 };
+	int err;
+
+	if (argsz != sizeof (*arg)) {
+		err = -EINVAL;
+		goto out;
+	}
+
+	/* XXX: get the mode... */
+	err = fuse_fs_mkdir(f->fs, arg->arg_path, 0700);
+
+out:
+	ret.ret_err = -err;
+	door_return((void *)&ret, sizeof (ret), NULL, 0);
+}
+
+/* FUSE_OP_RMDIR */
+static void
+do_rmdir(sol_ll_t *ll, void *vargp, size_t argsz)
+{
+	struct fuse *f = ll->userdata;
+	struct fuse_path_arg *arg = vargp;
+	struct fuse_generic_ret ret = { 0 };
+	int err;
+
+	if (argsz != sizeof (*arg)) {
+		err = -EINVAL;
+		goto out;
+	}
+	err = fuse_fs_rmdir(f->fs, arg->arg_path);
+
+out:
+	ret.ret_err = -err;
 	door_return((void *)&ret, sizeof (ret), NULL, 0);
 }
 
@@ -889,20 +1134,20 @@ sol_dispatch(void *door_cookie, char *cargp, size_t argsz,
 	struct fuse_generic_arg *argp = vargp;
 	struct fuse_generic_ret ret = { 0 };
 	sol_ll_t *ll = solaris_ll;
-	int rc = 0;
+	int err = 0;
 
 	/*
 	 * Allow a NULL arg call to check if the
 	 * deamon is running.  Just return zero.
 	 */
 	if (vargp == NULL) {
-		rc = 0;
+		err = 0;
 		goto out;
 	}
 
 	/* XXX: context setup? */
 	if (ll == NULL || ll->got_destroy) {
-		rc = ESRCH;
+		err = ESRCH;
 		goto out;
 	}
 
@@ -912,11 +1157,16 @@ sol_dispatch(void *door_cookie, char *cargp, size_t argsz,
 	 * They all get a struct fuse_ll
 	 */
 	if (argsz < sizeof (*argp)) {
-		rc = EINVAL;
+		err = EINVAL;
 		goto out;
 	}
 	memset(&ret, 0, sizeof (ret));
+
 	switch (argp->arg_opcode) {
+
+	/*
+	 * Misc and VFS operations
+	 */
 
 	case FUSE_OP_INIT:
 		do_init(ll, vargp, argsz);
@@ -931,8 +1181,13 @@ sol_dispatch(void *door_cookie, char *cargp, size_t argsz,
 		break;
 
 	case FUSE_OP_FGETATTR:
-	do_fgetattr(ll, vargp, argsz);
+		do_fgetattr(ll, vargp, argsz);
 		break;
+
+	/*
+	 * Non-modify operations
+	 */
+
 	case FUSE_OP_GETATTR:
 		do_getattr(ll, vargp, argsz);
 		break;
@@ -940,9 +1195,11 @@ sol_dispatch(void *door_cookie, char *cargp, size_t argsz,
 	case FUSE_OP_OPENDIR:
 		do_opendir(ll, vargp, argsz);
 		break;
+
 	case FUSE_OP_CLOSEDIR:
 		do_closedir(ll, vargp, argsz);
 		break;
+
 	case FUSE_OP_READDIR:
 		do_readdir(ll, vargp, argsz);
 		break;
@@ -950,30 +1207,73 @@ sol_dispatch(void *door_cookie, char *cargp, size_t argsz,
 	case FUSE_OP_OPEN:
 		do_open(ll, vargp, argsz);
 		break;
+
 	case FUSE_OP_CLOSE:
 		do_close(ll, vargp, argsz);
 		break;
+
 	case FUSE_OP_READ:
 		do_read(ll, vargp, argsz);
 		break;
+
+	/*
+	 * Modify operations
+	 */
 	case FUSE_OP_WRITE:
 		do_write(ll, vargp, argsz);
 		break;
+
 	case FUSE_OP_FLUSH:
 		do_flush(ll, vargp, argsz);
+		break;
+
+	case FUSE_OP_CREATE:
+		do_create(ll, vargp, argsz);
+		break;
+
+	case FUSE_OP_FTRUNC:
+		do_ftruncate(ll, vargp, argsz);
+		break;
+
+	case FUSE_OP_UTIMES:
+		do_utimes(ll, vargp, argsz);
+		break;
+
+	case FUSE_OP_CHMOD:
+		do_chmod(ll, vargp, argsz);
+		break;
+
+	case FUSE_OP_CHOWN:
+		do_chown(ll, vargp, argsz);
+		break;
+
+	case FUSE_OP_DELETE:
+		do_delete(ll, vargp, argsz);
+		break;
+
+	case FUSE_OP_RENAME:
+		do_rename(ll, vargp, argsz);
+		break;
+
+	case FUSE_OP_MKDIR:
+		do_mkdir(ll, vargp, argsz);
+		break;
+
+	case FUSE_OP_RMDIR:
+		do_rmdir(ll, vargp, argsz);
 		break;
 
 	default:
 		fprintf(stderr, "sol_dispatch, unimpl. op %d\n",
 			argp->arg_opcode);
-		rc = ENOSYS;
+		err = ENOSYS;
 		break;
 	}
 
 	/* XXX: context cleanup? */
 
 out:
-	ret.ret_err = rc;
+	ret.ret_err = err;
 	door_return((void *)&ret, sizeof (ret), NULL, 0);
 }
 
@@ -983,29 +1283,27 @@ void fuse_pollhandle_destroy(struct fuse_pollhandle *ph)
 	free(ph);
 }
 
-static int send_notify_iov(struct fuse_ll *f, struct fuse_chan *ch,
-			   int notify_code, struct iovec *iov, int count)
-{
-	return -ENOSYS;
-}
-
+/* ARGSUSED */
 int fuse_lowlevel_notify_poll(struct fuse_pollhandle *ph)
 {
 	return 0;
 }
 
+/* ARGSUSED */
 int fuse_lowlevel_notify_inval_inode(struct fuse_chan *ch, fuse_ino_t ino,
                                      off_t off, off_t len)
 {
 	return 0;
 }
 
+/* ARGSUSED */
 int fuse_lowlevel_notify_inval_entry(struct fuse_chan *ch, fuse_ino_t parent,
                                      const char *name, size_t namelen)
 {
 	return 0;
 }
 
+/* ARGSUSED */
 void *fuse_req_userdata(fuse_req_t req)
 {
 	return req->f->userdata;
@@ -1054,12 +1352,12 @@ int fuse_req_interrupted(fuse_req_t req)
 }
 
 
-
+/* ARGSUSED */
 static void fuse_sol_process(void *data, const char *buf, size_t len,
 			    struct fuse_chan *ch)
 {
+#if 0	/* XXX */
 	struct fuse_ll *f = (struct fuse_ll *) data;
-	struct fuse_req *req;
 	int err;
 
 	/*
@@ -1067,7 +1365,6 @@ static void fuse_sol_process(void *data, const char *buf, size_t len,
 	 * dispatch, door_return()
 	 */
 
-#if 0	/* XXX */
 	req = (struct fuse_req *) calloc(1, sizeof(struct fuse_req));
 	if (req == NULL) {
 		fprintf(stderr, "fuse: failed to allocate request\n");
@@ -1094,7 +1391,6 @@ static void fuse_sol_process(void *data, const char *buf, size_t len,
 	} else if (in->opcode == FUSE_INIT || in->opcode == CUSE_INIT)
 		goto reply_err;
 
-#endif	/* XXX */
 
 	err = ENOSYS;
 
@@ -1104,6 +1400,7 @@ static void fuse_sol_process(void *data, const char *buf, size_t len,
 
  reply_err:
 	/* XXX fuse_reply_err(req, err); */
+#endif	/* XXX */
 	return;
 }
 
@@ -1251,6 +1548,7 @@ errout:
 	return NULL;
 }
 
+/* ARGSUSED */
 struct fuse_session *fuse_lowlevel_new_common(struct fuse_args *args,
 					      const struct fuse_lowlevel_ops *op,
 					      size_t op_size, void *userdata)
@@ -1270,6 +1568,7 @@ struct fuse_session *fuse_lowlevel_new(struct fuse_args *args,
 /*
  * This is currently not implemented on other than Linux...
  */
+/* ARGSUSED */
 int fuse_req_getgroups(fuse_req_t req, int size, gid_t list[])
 {
 	return -ENOSYS;
@@ -1279,12 +1578,14 @@ int fuse_req_getgroups(fuse_req_t req, int size, gid_t list[])
 #if !defined(__FreeBSD__) /* XXX? && !defined(__SOLARIS__) */
 
 
+/* ARGSUSED */
 int fuse_reply_open_compat(fuse_req_t req,
 			   const struct fuse_file_info_compat *f)
 {
 	return -ENOSYS;
 }
 
+/* ARGSUSED */
 int fuse_reply_statfs_compat(fuse_req_t req, const struct statfs *stbuf)
 {
 	return -ENOSYS;
@@ -1418,24 +1719,27 @@ fuse_session_loop_mt(struct fuse_session *se)
  * these objects.  So stub these out.
  */
 
+/* ARGSUSED */
 static int fuse_sol_chan_receive(struct fuse_chan **chp, char *buf,
 				  size_t size)
 {
 	return -ENOSYS;
 }
 
+/* ARGSUSED */
 static int fuse_sol_chan_send(struct fuse_chan *ch, const struct iovec iov[],
 			       size_t count)
 {
 	return 0;
 }
 
+/* ARGSUSED */
 static void fuse_sol_chan_destroy(struct fuse_chan *ch)
 {
 	fuse_sol_door_destroy();
 }
 
-#define MIN_BUFSIZE 0x21000
+#define	MIN_BUFSIZE 0x21000
 
 /*
  * XXX: Later, do the door create here?
@@ -1450,6 +1754,7 @@ struct fuse_chan *fuse_sol_chan_new(int fd)
 	return fuse_chan_new(&op, fd, FUSE_MAX_IOSIZE, NULL);
 }
 
+/* ARGSUSED */
 struct fuse_chan *fuse_kern_chan_new(int fd)
 {
 	fprintf(stderr, "fuse_kern_chan_new is not supported.\n");

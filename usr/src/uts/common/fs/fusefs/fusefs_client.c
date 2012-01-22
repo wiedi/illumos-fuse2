@@ -25,7 +25,7 @@
  *	Copyright (c) 1983,1984,1985,1986,1987,1988,1989  AT&T.
  *	All rights reserved.
  *
- * Copyright 2011 Nexenta Systems, Inc.  All rights reserved.
+ * Copyright 2012 Nexenta Systems, Inc.  All rights reserved.
  */
 
 #include <sys/param.h>
@@ -318,6 +318,7 @@ fusefs_getattr_cache(vnode_t *vp, fusefattr_t *fap)
 int
 fusefs_getattr_otw(vnode_t *vp, fusefattr_t *fap, cred_t *cr)
 {
+	_NOTE(ARGUNUSED(cr));
 	fusemntinfo_t	*fmi;
 	fusefs_ssn_t	*ssp;
 	struct fusenode	*np;

@@ -25,6 +25,7 @@
  * so just stub these out.
  */
 
+/* ARGSUSED */
 struct fuse_session *cuse_lowlevel_new(struct fuse_args *args,
 				       const struct cuse_info *ci,
 				       const struct cuse_lowlevel_ops *clop,
@@ -33,6 +34,7 @@ struct fuse_session *cuse_lowlevel_new(struct fuse_args *args,
 	return (NULL);
 }
 
+/* ARGSUSED */
 struct fuse_session *cuse_lowlevel_setup(int argc, char *argv[],
 					 const struct cuse_info *ci,
 					 const struct cuse_lowlevel_ops *clop,
@@ -41,10 +43,12 @@ struct fuse_session *cuse_lowlevel_setup(int argc, char *argv[],
 	return (NULL);
 }
 
+/* ARGSUSED */
 void cuse_lowlevel_teardown(struct fuse_session *se)
 {
 }
 
+/* ARGSUSED */
 int cuse_lowlevel_main(int argc, char *argv[], const struct cuse_info *ci,
 		       const struct cuse_lowlevel_ops *clop, void *userdata)
 {

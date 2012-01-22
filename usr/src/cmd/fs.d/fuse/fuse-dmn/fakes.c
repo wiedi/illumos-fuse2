@@ -10,7 +10,7 @@
  */
 
 /*
- * Copyright 2011 Nexenta Systems, Inc.  All rights reserved.
+ * Copyright 2012 Nexenta Systems, Inc.  All rights reserved.
  */
 
 /*
@@ -75,7 +75,7 @@ static struct fuse_stat fake_file_attrs = {
 	.st_blocks = 2,
 };
 
-#define NFAKES 4
+#define	NFAKES 4
 static char *fake_names[] = {
 	".",		/* ino 2 (the root) */
 	"..",		/* ino 2 (yes, 2 again) */
